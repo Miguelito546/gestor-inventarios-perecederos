@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<h1>Usuarios y roles (RF-017)</h1>
+<div class="rejilla ancha-izq">
+<section class="tarjeta">
+  <table class="tabla">
+    <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Sucursal</th><th>Estado</th><th></th></tr>
+    {% for x in usuarios %}
+    <tr class="{{ 'tenue' if not x.activo }}"><td>{{ x.nombre_completo }}</td><td>{{ x.username }}</td><td>{{ x.rol }}</td><td>{{ x.sucursal or 'Todas' }}</td>
+      <td>{{ 'Activo' if x.activo else 'Inactivo' }}</td><td><a href="?editar={{ x.id_usuario }}">Editar</a></td></tr>
+    {% endfor %}
+  </table>
+</section>
+<section class="tarjeta">
+  <h2>{{ 'Editar usuario' if editar else 'Nuevo usuario' }}</h2>
+  <form method="post" class="formulario">
+    <input type="hidden" name="id_usuario" value="{{ editar.id_usuario if editar else '' }}">
+    <label>Nombre completo <input name="nombre_completo" value="{{ editar.nombre_completo if editar else '' }}" required></label>
+    <label>Usuario <input name="username" value="{{ editar.username if editar else '' }}" required></label>
+    <label>{{ 'Nueva contraseña (vacío = no cambia)' if editar else 'Contraseña inicial' }} <input name="contrasena" type="password" {% if not editar %}required minlength="6"{% endif %}></label>
+    <label>Rol <select name="rol">{% for r in roles %}<option {% if editar and editar.rol == r %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></label>
+    <label>Sucursal <select name="id_sucursal"><option value="">— (solo administrador)</option>
+      {% for s in sucursales %}<option value="{{ s.id_sucursal }}" {% if editar and editar.id_sucursal == s.id_sucursal %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}</select></label>
+    <label class="check"><input type="checkbox" name="activo" value="1" {% if not editar or editar.activo %}checked{% endif %}> Activo</label>
+    <button class="btn">Guardar</button> {% if editar %}<a class="btn claro" href="{{ url_for('admin.usuarios') }}">Cancelar</a>{% endif %}
+  </form>
+</section>
+</div>
+{% endblock %}

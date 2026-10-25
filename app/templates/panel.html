@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block contenido %}
+<h1>Hola, {{ u.nombre_completo.split(' ')[0] }}</h1>
+<p class="tenue">Fecha y hora del sistema: {{ ahora|fecha }}</p>
+
+<div class="cifras">
+  {% for e, clase in [('Fresco','verde'), ('Próximo a vencer','amarillo'), ('Vencido','rojo'), ('Retenido','morado')] %}
+  <a class="cifra {{ clase }}" href="{{ url_for('inventario.consultar', estado=e) }}"><b>{{ estados.get(e, 0) }}</b><span>{{ e }}</span></a>
+  {% endfor %}
+  <a class="cifra gris" href="{{ url_for('alertas.lista') }}"><b>{{ alertas_pendientes }}</b><span>Alertas activas</span></a>
+  {% if u.rol != 'Empleado' %}<a class="cifra gris" href="{{ url_for('aprovechamiento.descuentos') }}"><b>{{ pendientes_desc }}</b><span>Descuentos por autorizar</span></a>{% endif %}
+</div>
+
+<div class="rejilla">
+  <section class="tarjeta">
+    <h2>Alertas activas</h2>
+    {% for a in alertas %}
+      <a class="fila-alerta" href="{{ url_for('alertas.detalle', id_alerta=a.id_alerta) }}">
+        <span class="etiqueta {{ a.severidad|clase_sev }}">{{ a.severidad|nombre }}</span>
+        <span><b>{{ a.tipo_alerta|nombre }}</b> · {{ a.codigo_lote or a.nombre_equipo }}<br><small class="tenue">{{ a.descripcion }}</small></span>
+      </a>
+    {% else %}<p class="tenue">Sin alertas activas.</p>{% endfor %}
+  </section>
+  <section class="tarjeta">
+    <h2>Equipos de la sucursal</h2>
+    <table class="tabla">
+      <tr><th>Equipo</th><th>Actual</th><th>Rango</th></tr>
+      {% for e in equipos %}
+      <tr><td><a href="{{ url_for('monitoreo.ver', equipo=e.id_equipo) }}">{{ e.nombre_equipo }}</a></td>
+        <td class="{{ 'texto-rojo' if e.actual is not none and (e.actual > e.temp_max_permitida or e.actual < e.temp_min_permitida) }}">
+          {{ e.actual|num(1) if e.actual is not none else '—' }} °C</td>
+        <td>{{ e.temp_min_permitida|num(1) }} a {{ e.temp_max_permitida|num(1) }} °C</td></tr>
+      {% else %}<tr><td colspan="3" class="tenue">Sin equipos registrados.</td></tr>{% endfor %}
+    </table>
+  </section>
+  <section class="tarjeta">
+    <h2>Lotes que requieren atención</h2>
+    <table class="tabla">
+      {% for l in proximos %}
+      <tr><td><a href="{{ url_for('trazabilidad.lote', id_lote=l.id_lote) }}">{{ l.codigo_lote }}</a><br><small>{{ l.insumo }}</small></td>
+        <td>{{ l.cantidad_actual|num }} {{ l.unidad_medida }}</td>
+        <td><span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span><br><small>Caduca {{ l.fecha_caducidad|fecha }}</small></td></tr>
+      {% else %}<tr><td class="tenue">Todo en orden.</td></tr>{% endfor %}
+    </table>
+  </section>
+</div>
+
+{% if resumen %}
+<section class="tarjeta">
+  <h2>Resumen por sucursal</h2>
+  <table class="tabla">
+    <tr><th>Sucursal</th><th>Lotes con existencia</th><th>Equipos</th><th>Alertas activas</th><th>Estado</th></tr>
+    {% for s in resumen %}
+    <tr><td>{{ s.nombre }}</td><td>{{ s.lotes }}</td><td>{{ s.equipos }}</td>
+      <td>{% if s.alertas %}<span class="etiqueta naranja">{{ s.alertas }}</span>{% else %}0{% endif %}</td>
+      <td>{{ 'Activa' if s.activa else 'Inactiva' }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
+{% endblock %}

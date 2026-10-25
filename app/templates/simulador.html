@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Simulador IoT{% endblock %}
+{% block contenido %}
+<h1>Simulador IoT (RI-004)</h1>
+<p>El simulador {% if activo %}<span class="etiqueta verde">está activo</span>{% else %}<span class="etiqueta gris">está apagado</span>{% endif %}
+  y envía una lectura por equipo cada {{ intervalo }} segundos. Úsalo para demostrar las alertas en vivo.</p>
+<div class="aviso info">Para que la alerta de cadena de frío aparezca rápido en la presentación, el administrador puede bajar el
+  <b>tiempo tolerado</b> a 1 minuto en <i>Sucursales y umbrales</i> (el valor de la SRS es 15 min).</div>
+<table class="tabla">
+  <tr><th>Equipo</th><th>Lectura actual</th><th>Rango</th><th>Modo</th><th>Cambiar a</th></tr>
+  {% for e in equipos %}
+  <tr><td>{{ e.nombre_equipo }}</td>
+    <td class="{{ 'texto-rojo' if e.fuera_de_rango }}">{{ e.actual|num(1) if e.actual is not none else '—' }} °C<br><small class="tenue">{{ e.hora|fecha if e.hora else '' }}</small></td>
+    <td>{{ e.temp_min_permitida|num(1) }} a {{ e.temp_max_permitida|num(1) }} °C</td>
+    <td>{% if e.modo == 'falla' %}<span class="etiqueta rojo">Falla de frío</span>{% elif e.modo == 'sin_senal' %}<span class="etiqueta gris">Sin señal</span>{% else %}<span class="etiqueta verde">Normal</span>{% endif %}</td>
+    <td class="acciones">
+      {% for modo, texto in [('normal', 'Normal'), ('falla', 'Simular falla'), ('sin_senal', 'Cortar señal')] if modo != e.modo %}
+      <form method="post"><input type="hidden" name="id_equipo" value="{{ e.id_equipo }}"><input type="hidden" name="modo" value="{{ modo }}">
+        <button class="btn chico {{ 'rojo' if modo == 'falla' else 'claro' }}">{{ texto }}</button></form>
+      {% endfor %}
+    </td></tr>
+  {% endfor %}
+</table>
+<p class="tenue">El simulador externo (<code>simulador_iot.py</code>) usa la API <code>POST /api/lecturas</code> con JSON
+  <code>{"id_equipo": 1, "temperatura": 3.2}</code> y el encabezado <code>X-Token</code>.</p>
+{% endblock %}

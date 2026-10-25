@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Lotes afectados{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('trazabilidad.buscar') }}">← Trazabilidad</a></p>
+<h1>Lotes afectados ({{ lotes|length }})</h1>
+<form method="get" class="tarjeta filtros">
+  <label>Proveedor <select name="proveedor"><option value="">Todos</option>{% for p in proveedores %}<option value="{{ p.id_proveedor }}" {% if f.proveedor == p.id_proveedor|string %}selected{% endif %}>{{ p.nombre_empresa }}</option>{% endfor %}</select></label>
+  <label>Insumo <select name="insumo"><option value="">Todos</option>{% for i in insumos %}<option value="{{ i.id_insumo }}" {% if f.insumo == i.id_insumo|string %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select></label>
+  <label>Recibidos desde <input type="date" name="desde" value="{{ f.desde }}"></label>
+  <label>hasta <input type="date" name="hasta" value="{{ f.hasta }}"></label>
+  <button class="btn">Actualizar</button>
+  <button class="btn claro" name="exportar" value="csv">Exportar CSV</button>
+</form>
+<p><b>Sucursales donde se encuentran:</b> {{ sucursales|join(', ') if sucursales else 'ninguna' }}</p>
+<div class="tabla-scroll"><table class="tabla">
+  <tr><th>Lote</th><th>Insumo</th><th>Proveedor</th><th>Sucursal</th><th>Equipo</th><th>Recepción</th><th>Existencia</th><th>Estado</th></tr>
+  {% for l in lotes %}
+  <tr><td><a href="{{ url_for('trazabilidad.lote', id_lote=l.id_lote) }}">{{ l.codigo_lote }}</a></td><td>{{ l.insumo }}</td><td>{{ l.proveedor }}</td>
+    <td>{{ l.sucursal }}</td><td>{{ l.nombre_equipo }}</td><td>{{ l.fecha_recepcion|fecha }}</td><td>{{ l.cantidad_actual|num }} {{ l.unidad_medida }}</td>
+    <td><span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span></td></tr>
+  {% else %}<tr><td colspan="8" class="tenue">Ningún lote coincide.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

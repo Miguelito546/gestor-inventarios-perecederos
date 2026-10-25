@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Alerta {{ a.id_alerta }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('alertas.lista') }}">← Alertas</a></p>
+<h1>Alerta {{ a.id_alerta }} · {{ a.tipo_alerta|nombre }} <span class="etiqueta {{ a.severidad|clase_sev }}">{{ a.severidad|nombre }}</span></h1>
+<div class="rejilla">
+<section class="tarjeta">
+  <dl class="ficha">
+    <dt>Estado</dt><dd><span class="estado-alerta e-{{ a.estado_alerta|lower }}">{{ a.estado_alerta|nombre }}</span></dd>
+    <dt>Descripción</dt><dd>{{ a.descripcion }}</dd>
+    <dt>Sucursal</dt><dd>{{ a.sucursal }}</dd>
+    {% if a.codigo_lote %}<dt>Lote</dt><dd><a href="{{ url_for('trazabilidad.lote', id_lote=a.id_lote) }}">{{ a.codigo_lote }}</a></dd>{% endif %}
+    {% if a.nombre_equipo %}<dt>Equipo</dt><dd><a href="{{ url_for('monitoreo.ver', equipo=a.id_equipo) }}">{{ a.nombre_equipo }}</a></dd>{% endif %}
+    <dt>Generada</dt><dd>{{ a.fecha_creacion|fecha }}</dd>
+  </dl>
+</section>
+<section class="tarjeta">
+  <h2>Historial de atención</h2>
+  {% for h in historial %}
+  <div class="evento"><b>{{ h.accion_tomada }}</b> · {{ h.nombre_completo }} · {{ h.fecha_registro|fecha }}<br>{{ h.comentario }}</div>
+  {% else %}<p class="tenue">Aún no se ha atendido.</p>{% endfor %}
+</section>
+</div>
+{% if acciones and u.rol in ('Supervisor', 'Administrador') %}
+<section class="tarjeta">
+  <h2>Gestionar alerta (RF-012)</h2>
+  <form method="post" class="formulario">
+    <label>Comentario <textarea name="comentario" rows="3" placeholder="Obligatorio para atender o cerrar"></textarea></label>
+    {% if 'Cerrar' in acciones and lotes %}
+    <h3>Decisión sobre los lotes al cerrar</h3>
+    <table class="tabla">
+      <tr><th>Lote</th><th>Existencia</th><th>Estado</th><th>Decisión</th></tr>
+      {% for l in lotes if l.cantidad_actual > 0 %}
+      <tr><td>{{ l.codigo_lote }}<br><small>{{ l.insumo }}</small></td><td>{{ l.cantidad_actual|num }} {{ l.unidad_medida }}</td>
+        <td><span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span></td>
+        <td>{% if l.estado_lote == 'Retenido' %}<label class="check"><input type="radio" name="lote_{{ l.id_lote }}" value="liberar" data-cerrar> Liberar</label>{% endif %}
+            <label class="check"><input type="radio" name="lote_{{ l.id_lote }}" value="merma" data-cerrar> Dar de baja como merma</label>
+            {% if l.estado_lote != 'Retenido' %}<label class="check"><input type="radio" name="lote_{{ l.id_lote }}" value="" checked> Sin cambio</label>{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    <div class="acciones">
+      {% for ac in acciones %}<button class="btn {{ 'rojo' if ac == 'Cerrar' }}" name="accion" value="{{ ac }}">{{ ac }}</button>{% endfor %}
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+// Al cerrar una alerta de cadena de frío hay que decidir qué hacer con cada lote retenido.
+document.querySelectorAll('button[value="Cerrar"]').forEach(b => b.addEventListener('click', ev => {
+  const nombres = new Set([...document.querySelectorAll('input[data-cerrar]')].map(i => i.name));
+  for (const n of nombres) {
+    if (!document.querySelector(`input[name="${n}"]:checked`)) { ev.preventDefault(); alert('Elige qué hacer con cada lote retenido antes de cerrar.'); return; }
+  }
+}));
+</script>
+{% endblock %}

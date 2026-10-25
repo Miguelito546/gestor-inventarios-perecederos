@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+<div class="login">
+  <h1>❄ Gestor de Inventarios Perecederos</h1>
+  <p class="tenue">Sucursales KFC Villahermosa · caso de estudio simulado</p>
+  <form method="post" class="tarjeta">
+    <label>Usuario <input name="usuario" value="{{ usuario or '' }}" autofocus required autocomplete="username"></label>
+    <label>Contraseña <input name="contrasena" type="password" required autocomplete="current-password"></label>
+    <button class="btn">Iniciar sesión</button>
+  </form>
+  <details class="tarjeta tenue">
+    <summary>Usuarios de prueba</summary>
+    <table class="tabla">
+      <tr><th>Usuario</th><th>Rol</th><th>Sucursal</th></tr>
+      <tr><td>admin</td><td>Administrador</td><td>Todas</td></tr>
+      <tr><td>supervisor</td><td>Supervisor</td><td>Centro</td></tr>
+      <tr><td>empleado</td><td>Empleado</td><td>Centro</td></tr>
+      <tr><td>supervisor2</td><td>Supervisor</td><td>Plaza Galerías</td></tr>
+      <tr><td>empleado2</td><td>Empleado</td><td>Plaza Galerías</td></tr>
+    </table>
+    <p>Contraseña de todos: <b>Demo2026</b></p>
+  </details>
+</div>
+{% endblock %}

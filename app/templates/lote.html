@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}{{ l.codigo_lote }}{% endblock %}
+{% block contenido %}
+<h1>Lote {{ l.codigo_lote }} <span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span></h1>
+<div class="rejilla">
+<section class="tarjeta">
+  <h2>Ficha del lote</h2>
+  <dl class="ficha">
+    <dt>Insumo</dt><dd>{{ l.insumo }}</dd>
+    <dt>Proveedor</dt><dd>{{ l.proveedor }}</dd>
+    <dt>Sucursal</dt><dd>{{ l.sucursal }}</dd>
+    <dt>Ubicación</dt><dd>{{ l.nombre_equipo }}</dd>
+    <dt>Recepción</dt><dd>{{ l.fecha_recepcion|fecha }}</dd>
+    <dt>Caducidad</dt><dd>{{ l.fecha_caducidad|fecha }}</dd>
+    <dt>Cantidad inicial</dt><dd>{{ l.cantidad_inicial|num }} {{ l.unidad_medida }}</dd>
+    <dt>Existencia</dt><dd><b>{{ l.cantidad_actual|num }} {{ l.unidad_medida }}</b></dd>
+    <dt>Riesgo de merma</dt><dd><span class="riesgo r-{{ l.riesgo_merma|lower|replace(' ', '-') }}">{{ l.riesgo_merma }}</span></dd>
+  </dl>
+</section>
+<section class="tarjeta">
+  <h2>Historial de estados</h2>
+  {% for h in estados %}
+  <div class="evento">{{ h.fecha_cambio|fecha }} · {{ h.estado_anterior or 'Alta' }} → <b>{{ h.estado_nuevo }}</b><br>
+    <small>{{ h.motivo_cambio }} · {{ h.nombre_completo or 'Sistema' }}</small></div>
+  {% else %}<p class="tenue">Sin cambios registrados.</p>{% endfor %}
+</section>
+</div>
+<section class="tarjeta">
+  <h2>Movimientos</h2>
+  <table class="tabla">
+    <tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Detalle</th><th>Usuario</th><th>FEFO</th></tr>
+    {% for m in movimientos %}
+    <tr><td>{{ m.fecha_movimiento|fecha }}</td><td>{{ m.tipo_movimiento|nombre }}</td><td>{{ m.cantidad|num }} {{ l.unidad_medida }}</td>
+      <td>{{ m.motivo_merma or '—' }}</td><td>{{ m.nombre_completo }}</td><td>{{ 'Sí' if m.sugerido_por_fefo else 'No' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="tenue">Sin movimientos.</td></tr>{% endfor %}
+  </table>
+</section>
+<div class="rejilla">
+<section class="tarjeta">
+  <h2>Alertas asociadas</h2>
+  {% for a in alertas %}
+  <a class="fila-alerta" href="{{ url_for('alertas.detalle', id_alerta=a.id_alerta) }}"><span class="etiqueta {{ a.severidad|clase_sev }}">{{ a.severidad|nombre }}</span>
+    <span>{{ a.tipo_alerta|nombre }} · {{ a.estado_alerta|nombre }} · {{ a.fecha_creacion|fecha }}<br><small class="tenue">{{ a.descripcion }}</small></span></a>
+  {% else %}<p class="tenue">Sin alertas.</p>{% endfor %}
+</section>
+<section class="tarjeta">
+  <h2>Descuentos y donaciones</h2>
+  {% for d in descuentos %}<div class="evento">Descuento {{ d.porcentaje_sugerido|num(0) }} % · <b>{{ d.estado_autorizacion }}</b> · {{ d.fecha_sugerencia|fecha }}{% if d.nombre_completo %} · {{ d.nombre_completo }}{% endif %}{% if d.motivo_rechazo %}<br><small>{{ d.motivo_rechazo }}</small>{% endif %}</div>{% endfor %}
+  {% for d in donaciones %}<div class="evento">Donación {{ d.folio_donacion }} · {{ d.cantidad_donada|num }} {{ l.unidad_medida }} a {{ d.nombre_institucion }} · <b>{{ d.estado_propuesta }}</b></div>{% endfor %}
+  {% if not descuentos and not donaciones %}<p class="tenue">Ninguno.</p>{% endif %}
+</section>
+</div>
+{% endblock %}

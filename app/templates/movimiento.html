@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Consumo o merma{% endblock %}
+{% block contenido %}
+<h1>Registrar consumo o merma (RF-007)</h1>
+<form method="get" class="tarjeta filtros">
+  <label>Tipo de movimiento <select name="tipo" onchange="this.form.submit()">
+    <option {% if tipo == 'Consumo' %}selected{% endif %}>Consumo</option><option {% if tipo == 'Merma' %}selected{% endif %}>Merma</option></select></label>
+  <label>Insumo <select name="id_insumo" onchange="this.form.submit()"><option value="">Selecciona…</option>
+    {% for i in insumos %}<option value="{{ i.id_insumo }}" {% if id_insumo == i.id_insumo|string %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select></label>
+  <noscript><button class="btn">Ver lotes</button></noscript>
+</form>
+{% if id_insumo %}
+<form method="post" class="tarjeta formulario">
+  <input type="hidden" name="tipo" value="{{ tipo }}"><input type="hidden" name="id_insumo" value="{{ id_insumo }}">
+  {% if sugerido %}<div class="aviso info">FEFO: se sugiere el lote <b>{{ sugerido.codigo_lote }}</b>, que caduca primero ({{ sugerido.fecha_caducidad|fecha }}).</div>
+  {% elif tipo == 'Consumo' %}<div class="aviso error">No hay lotes utilizables: los disponibles están vencidos o retenidos (RD-004). Solo puedes registrar merma.</div>{% endif %}
+  <table class="tabla">
+    <tr><th></th><th>Lote</th><th>Existencia</th><th>Caducidad</th><th>Estado</th><th>Equipo</th></tr>
+    {% for l in lotes %}
+    {% set bloqueado = tipo == 'Consumo' and l.estado_lote in ('Vencido', 'Retenido') %}
+    <tr class="{{ 'bloqueado' if bloqueado }}">
+      <td><input type="radio" name="id_lote" value="{{ l.id_lote }}" {% if sugerido and l.id_lote == sugerido.id_lote %}checked{% endif %} {% if bloqueado %}disabled{% endif %} required></td>
+      <td>{{ l.codigo_lote }}{% if sugerido and l.id_lote == sugerido.id_lote %} <span class="etiqueta azul">Sugerido</span>{% endif %}</td>
+      <td>{{ l.cantidad_actual|num }} {{ l.unidad_medida }}</td><td>{{ l.fecha_caducidad|fecha }}</td>
+      <td><span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span></td><td>{{ l.nombre_equipo }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div class="dos">
+    <label>Cantidad <input name="cantidad" type="number" step="0.01" min="0.01" required></label>
+    {% if tipo == 'Merma' %}<label>Motivo de la merma <input name="motivo" required placeholder="Ej.: producto vencido, empaque dañado"></label>{% endif %}
+  </div>
+  <button class="btn" name="confirmar" value="1">Registrar {{ tipo|lower }}</button>
+</form>
+{% endif %}
+{% endblock %}

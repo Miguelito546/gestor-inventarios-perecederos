@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}Catálogos{% endblock %}
+{% block contenido %}
+<h1>Catálogos</h1>
+<div class="rejilla">
+<section class="tarjeta">
+  <h2>Registrar insumo (RF-005)</h2>
+  <form method="post" class="formulario">
+    <input type="hidden" name="tipo" value="insumo">
+    <label>Nombre <input name="nombre" required></label>
+    <label>Categoría <input name="categoria" required list="categorias"></label>
+    <datalist id="categorias">{% for c in insumos|map(attribute='categoria')|unique %}<option value="{{ c }}">{% endfor %}</datalist>
+    <label>Unidad de medida <select name="unidad_medida"><option>kg</option><option>litros</option><option>piezas</option><option>cajas</option></select></label>
+    <div class="dos">
+      <label>Temp. mínima (°C) <input name="tmin" type="number" step="0.1" required></label>
+      <label>Temp. máxima (°C) <input name="tmax" type="number" step="0.1" required></label>
+    </div>
+    <button class="btn">Guardar insumo</button>
+  </form>
+</section>
+<section class="tarjeta">
+  <h2>Insumos ({{ insumos|length }})</h2>
+  <table class="tabla"><tr><th>Id</th><th>Nombre</th><th>Categoría</th><th>Unidad</th><th>Conservación</th></tr>
+  {% for i in insumos %}<tr><td>{{ i.id_insumo }}</td><td>{{ i.nombre }}</td><td>{{ i.categoria }}</td><td>{{ i.unidad_medida }}</td><td>{{ i.temp_min_conservacion|num(1) }} a {{ i.temp_max_conservacion|num(1) }} °C</td></tr>{% endfor %}
+  </table>
+</section>
+<section class="tarjeta">
+  <h2>Proveedores</h2>
+  <table class="tabla"><tr><th>Empresa</th><th>Contacto</th><th>Teléfono</th></tr>
+  {% for p in proveedores %}<tr><td>{{ p.nombre_empresa }}</td><td>{{ p.contacto_nombre or '—' }}</td><td>{{ p.telefono or '—' }}</td></tr>{% endfor %}
+  </table>
+  <form method="post" class="formulario">
+    <input type="hidden" name="tipo" value="proveedor">
+    <label>Empresa <input name="nombre_empresa" required></label>
+    <div class="dos"><label>Contacto <input name="contacto_nombre"></label><label>Teléfono <input name="telefono"></label></div>
+    <label>Correo <input name="email" type="email"></label>
+    <button class="btn claro">Agregar proveedor</button>
+  </form>
+</section>
+<section class="tarjeta">
+  <h2>Bancos de alimentos</h2>
+  <table class="tabla"><tr><th>Institución</th><th>Teléfono</th></tr>
+  {% for b in bancos %}<tr><td>{{ b.nombre_institucion }}<br><small class="tenue">{{ b.direccion }}</small></td><td>{{ b.contacto_telefono or '—' }}</td></tr>{% endfor %}
+  </table>
+  <form method="post" class="formulario">
+    <input type="hidden" name="tipo" value="banco">
+    <label>Institución <input name="nombre_institucion" required></label>
+    <label>Dirección <input name="direccion" required></label>
+    <div class="dos"><label>Teléfono <input name="contacto_telefono"></label><label>Correo <input name="email" type="email"></label></div>
+    <button class="btn claro">Agregar banco</button>
+  </form>
+</section>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas{% endblock %}
+{% block contenido %}
+<h1>Alertas</h1>
+<p><a class="btn {{ '' if ver == 'activas' else 'claro' }}" href="?ver=activas">Activas</a>
+   <a class="btn {{ '' if ver == 'todas' else 'claro' }}" href="?ver=todas">Todas</a>
+   {% if u.rol == 'Empleado' %}<span class="tenue"> · Solo el supervisor puede atender alertas.</span>{% endif %}</p>
+<div class="tabla-scroll">
+<table class="tabla">
+  <tr><th>Severidad</th><th>Tipo</th><th>Lote / equipo</th><th>Descripción</th><th>Estado</th><th>Fecha</th></tr>
+  {% for a in alertas %}
+  <tr class="{{ 'tenue' if a.estado_alerta == 'Cerrada' }}">
+    <td><span class="etiqueta {{ a.severidad|clase_sev }}">{{ a.severidad|nombre }}</span></td>
+    <td><a href="{{ url_for('alertas.detalle', id_alerta=a.id_alerta) }}">{{ a.tipo_alerta|nombre }}</a></td>
+    <td>{{ a.codigo_lote or a.nombre_equipo or '—' }}</td>
+    <td>{{ a.descripcion }}</td>
+    <td><span class="estado-alerta e-{{ a.estado_alerta|lower }}">{{ a.estado_alerta|nombre }}</span></td>
+    <td>{{ a.fecha_creacion|fecha }}</td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="tenue">No hay alertas.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

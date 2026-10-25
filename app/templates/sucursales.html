@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block titulo %}Sucursales y umbrales{% endblock %}
+{% block contenido %}
+<h1>Sucursales y umbrales (RF-018)</h1>
+<div class="rejilla ancha-der">
+<section class="tarjeta">
+  <h2>Sucursales</h2>
+  <ul class="lista-suc">
+    {% for s in sucursales %}<li class="{{ 'elegida' if actual and s.id_sucursal == actual.id_sucursal }}"><a href="?ver={{ s.id_sucursal }}">{{ s.nombre }}</a>
+      <small class="tenue">{{ s.equipos }} equipos{{ '' if s.activa else ' · inactiva' }}</small></li>{% endfor %}
+  </ul>
+  <a class="btn claro" href="?nueva=1">+ Nueva sucursal</a>
+</section>
+<div>
+{% if nueva or not actual %}
+<section class="tarjeta">
+  <h2>Nueva sucursal</h2>
+  <form method="post" class="formulario"><input type="hidden" name="tipo" value="sucursal">
+    <label>Nombre <input name="nombre" required></label><label>Dirección <input name="direccion" required></label>
+    <label>Teléfono <input name="telefono"></label><input type="hidden" name="activa" value="1">
+    <button class="btn">Registrar sucursal</button></form>
+</section>
+{% else %}
+<section class="tarjeta">
+  <h2>{{ actual.nombre }}</h2>
+  <form method="post" class="formulario"><input type="hidden" name="tipo" value="sucursal"><input type="hidden" name="id_sucursal" value="{{ actual.id_sucursal }}">
+    <label>Nombre <input name="nombre" value="{{ actual.nombre }}" required></label>
+    <label>Dirección <input name="direccion" value="{{ actual.direccion }}" required></label>
+    <div class="dos"><label>Teléfono <input name="telefono" value="{{ actual.telefono or '' }}"></label>
+      <label class="check"><input type="checkbox" name="activa" value="1" {% if actual.activa %}checked{% endif %}> Activa</label></div>
+    <button class="btn claro">Guardar datos</button></form>
+</section>
+<section class="tarjeta">
+  <h2>Parámetros de alertas</h2>
+  <form method="post" class="formulario"><input type="hidden" name="tipo" value="umbrales"><input type="hidden" name="id_sucursal" value="{{ actual.id_sucursal }}">
+    <div class="tres">
+      <label>Días de anticipación (caducidad) <input name="dias_anticipacion_caducidad" type="number" min="0" value="{{ umbrales.dias_anticipacion_caducidad }}"></label>
+      <label>Tiempo tolerado fuera de rango (min) <input name="tiempo_tolerado_temp_min" type="number" min="1" value="{{ umbrales.tiempo_tolerado_temp_min }}"></label>
+      <label>Minutos sin señal <input name="minutos_sin_senal" type="number" min="1" value="{{ umbrales.minutos_sin_senal }}"></label>
+      <label>Descuento ≤ 2 días (%) <input name="pct_descuento_nivel_1" type="number" step="0.01" min="0" max="100" value="{{ umbrales.pct_descuento_nivel_1 }}"></label>
+      <label>Descuento ≤ 1 día (%) <input name="pct_descuento_nivel_2" type="number" step="0.01" min="0" max="100" value="{{ umbrales.pct_descuento_nivel_2 }}"></label>
+      <label>Horas mínimas para donar <input name="horas_min_donacion" type="number" min="0" value="{{ umbrales.horas_min_donacion }}"></label>
+    </div>
+    <button class="btn">Guardar parámetros</button></form>
+</section>
+<section class="tarjeta">
+  <h2>Equipos (rangos de temperatura)</h2>
+  <table class="tabla">
+    <tr><th>Equipo</th><th>Tipo</th><th>Rango</th><th>Estado</th><th></th></tr>
+    {% for e in equipos %}
+    {% if editar_equipo == e.id_equipo %}
+    <tr><td colspan="5"><form method="post" class="formulario en-fila"><input type="hidden" name="tipo" value="equipo">
+      <input type="hidden" name="id_sucursal" value="{{ actual.id_sucursal }}"><input type="hidden" name="id_equipo" value="{{ e.id_equipo }}">
+      <input name="nombre_equipo" value="{{ e.nombre_equipo }}" required>
+      <select name="tipo_equipo"><option value="refrigeracion" {% if e.tipo_equipo == 'refrigeracion' %}selected{% endif %}>Refrigeración</option><option value="congelacion" {% if e.tipo_equipo == 'congelacion' %}selected{% endif %}>Congelación</option></select>
+      <input name="temp_min" type="number" step="0.1" value="{{ e.temp_min_permitida }}" title="Mínima °C">
+      <input name="temp_max" type="number" step="0.1" value="{{ e.temp_max_permitida }}" title="Máxima °C">
+      <select name="estado_operativo">{% for s in ('normal', 'alerta_temperatura', 'fuera_de_servicio') %}<option value="{{ s }}" {% if e.estado_operativo == s %}selected{% endif %}>{{ s|nombre }}</option>{% endfor %}</select>
+      <button class="btn chico">Guardar</button></form></td></tr>
+    {% else %}
+    <tr><td>{{ e.nombre_equipo }}</td><td>{{ e.tipo_equipo|nombre }}</td><td>{{ e.temp_min_permitida|num(1) }} a {{ e.temp_max_permitida|num(1) }} °C</td>
+      <td>{{ e.estado_operativo|nombre }}</td><td><a href="?ver={{ actual.id_sucursal }}&equipo={{ e.id_equipo }}">Editar</a></td></tr>
+    {% endif %}
+    {% endfor %}
+  </table>
+  <form method="post" class="formulario en-fila"><input type="hidden" name="tipo" value="equipo"><input type="hidden" name="id_sucursal" value="{{ actual.id_sucursal }}">
+    <input name="nombre_equipo" placeholder="Nombre del equipo" required>
+    <select name="tipo_equipo" onchange="const r = this.value === 'congelacion' ? [-25, -18] : [0, 4]; this.form.temp_min.value = r[0]; this.form.temp_max.value = r[1];">
+      <option value="refrigeracion">Refrigeración</option><option value="congelacion">Congelación</option></select>
+    <input name="temp_min" type="number" step="0.1" value="0" title="Mínima °C"><input name="temp_max" type="number" step="0.1" value="4" title="Máxima °C">
+    <button class="btn chico">Agregar equipo</button></form>
+</section>
+{% endif %}
+</div>
+</div>
+{% endblock %}

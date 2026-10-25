@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Inicio{% endblock %} · Gestor de Inventarios Perecederos</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+</head>
+<body>
+{% if u %}
+<header class="barra">
+  <a class="marca" href="{{ url_for('panel.inicio') }}">❄ Gestor de Inventarios Perecederos</a>
+  <button class="menu-btn" onclick="document.body.classList.toggle('menu-abierto')" aria-label="Menú">☰</button>
+  <div class="usuario">
+    {% if u.rol == 'Administrador' %}
+    <form method="post" action="{{ url_for('panel.elegir_sucursal') }}" class="selector">
+      <select name="id_sucursal" onchange="this.form.submit()" title="Sucursal que estás consultando">
+        {% for s in sucursales_menu %}<option value="{{ s.id_sucursal }}" {% if s.id_sucursal == id_sucursal_actual %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+      </select>
+    </form>
+    {% else %}<span class="suc">{{ u.sucursal }}</span>{% endif %}
+    <span>{{ u.nombre_completo }} · <b>{{ u.rol }}</b></span>
+    <a class="btn chico claro" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+  </div>
+</header>
+<nav class="menu">
+  {% set ep = request.endpoint or '' %}
+  <a href="{{ url_for('panel.inicio') }}" class="{{ 'activo' if ep == 'panel.inicio' }}">Inicio</a>
+  <a href="{{ url_for('inventario.consultar') }}" class="{{ 'activo' if ep == 'inventario.consultar' }}">Inventario</a>
+  <a href="{{ url_for('inventario.registrar_lote') }}" class="{{ 'activo' if ep == 'inventario.registrar_lote' }}">Registrar lote</a>
+  <a href="{{ url_for('inventario.registrar_movimiento') }}" class="{{ 'activo' if ep == 'inventario.registrar_movimiento' }}">Consumo / merma</a>
+  <a href="{{ url_for('monitoreo.ver') }}" class="{{ 'activo' if ep == 'monitoreo.ver' }}">Monitoreo</a>
+  <a href="{{ url_for('alertas.lista') }}" class="{{ 'activo' if ep.startswith('alertas') }}">Alertas{% if alertas_pendientes %} <span class="globo">{{ alertas_pendientes }}</span>{% endif %}</a>
+  {% if u.rol in ('Supervisor', 'Administrador') %}
+  <a href="{{ url_for('trazabilidad.buscar') }}" class="{{ 'activo' if ep.startswith('trazabilidad') }}">Trazabilidad</a>
+  <a href="{{ url_for('aprovechamiento.descuentos') }}" class="{{ 'activo' if ep == 'aprovechamiento.descuentos' }}">Descuentos</a>
+  <a href="{{ url_for('aprovechamiento.donaciones') }}" class="{{ 'activo' if ep == 'aprovechamiento.donaciones' }}">Donaciones</a>
+  <a href="{{ url_for('reportes.generar_reporte') }}" class="{{ 'activo' if ep.startswith('reportes') }}">Reportes</a>
+  <a href="{{ url_for('inventario.catalogos') }}" class="{{ 'activo' if ep == 'inventario.catalogos' }}">Catálogos</a>
+  <a href="{{ url_for('monitoreo.control_simulador') }}" class="{{ 'activo' if ep == 'monitoreo.control_simulador' }}">Simulador IoT</a>
+  {% endif %}
+  {% if u.rol == 'Administrador' %}
+  <a href="{{ url_for('admin.usuarios') }}" class="{{ 'activo' if ep == 'admin.usuarios' }}">Usuarios</a>
+  <a href="{{ url_for('admin.sucursales') }}" class="{{ 'activo' if ep == 'admin.sucursales' }}">Sucursales y umbrales</a>
+  <a href="{{ url_for('admin.bitacora') }}" class="{{ 'activo' if ep == 'admin.bitacora' }}">Bitácora</a>
+  {% endif %}
+</nav>
+{% endif %}
+<main class="{{ 'contenido' if u else 'contenido solo' }}">
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% for tipo, m in mensajes %}<div class="aviso {{ tipo }}">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block contenido %}{% endblock %}
+</main>
+<footer class="pie">Prototipo v1 · Equipo 1 · Fundamentos de Ingeniería de Software · ITVH · Datos ficticios (RNF-013)</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

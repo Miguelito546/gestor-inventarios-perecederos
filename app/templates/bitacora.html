@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}Bitácora{% endblock %}
+{% block contenido %}
+<h1>Bitácora de auditoría (RNF-011)</h1>
+<div class="tabla-scroll"><table class="tabla">
+  <tr><th>Fecha</th><th>Usuario</th><th>Tabla</th><th>Operación</th><th>Detalle</th></tr>
+  {% for b in registros %}
+  <tr><td>{{ b.fecha_registro|fecha }}</td><td>{{ b.nombre_completo or 'Sistema' }}</td><td>{{ b.tabla_afectada }}</td><td>{{ b.operacion }}</td><td>{{ b.detalles }}</td></tr>
+  {% endfor %}
+</table></div>
+<section class="tarjeta peligro">
+  <h2>Reiniciar datos de demostración</h2>
+  <p>Borra todo y vuelve a cargar los datos ficticios con fechas de hoy. Útil antes de una presentación.</p>
+  <form method="post" action="{{ url_for('admin.reiniciar_demo') }}" class="filtros">
+    <label>Escribe REINICIAR para confirmar <input name="confirmacion" required></label>
+    <button class="btn rojo">Reiniciar datos</button>
+  </form>
+</section>
+{% endblock %}

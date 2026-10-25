@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titulo %}Monitoreo{% endblock %}
+{% block contenido %}
+<h1>Monitoreo de temperatura (RF-009)</h1>
+<p class="tenue">La vista se actualiza sola cada 30 segundos (RI-003). Última actualización: <span id="actualizado">{{ ahora|fecha }}</span></p>
+<div class="equipos">
+  {% for e in equipos %}
+  <a id="eq-{{ e.id_equipo }}" class="equipo {{ 'elegido' if equipo and e.id_equipo == equipo.id_equipo }} {{ 'fuera' if e.fuera_de_rango }}" href="{{ url_for('monitoreo.ver', equipo=e.id_equipo) }}">
+    <span class="nombre">{{ e.nombre_equipo }}</span>
+    <span class="temp"><b class="valor">{{ e.actual|num(1) if e.actual is not none else 'Sin datos' }}</b>{% if e.actual is not none %} °C{% endif %}</span>
+    <small>Rango {{ e.temp_min_permitida|num(1) }} a {{ e.temp_max_permitida|num(1) }} °C · {{ e.tipo_equipo|nombre }}</small>
+    <small class="hora">{{ e.hora|fecha if e.hora else '' }}</small>
+    <span class="estado-eq">{% if e.alertas %}<span class="etiqueta rojo">{{ e.alertas }} alerta(s)</span>{% endif %}</span>
+  </a>
+  {% else %}<p class="tenue">Esta sucursal no tiene equipos registrados.</p>{% endfor %}
+</div>
+{% if equipo %}
+<section class="tarjeta">
+  <h2>{{ equipo.nombre_equipo }} · últimas 24 h</h2>
+  <p id="sin-datos" class="tenue" hidden>Sin datos.</p>
+  <div class="grafica"><canvas id="grafica"></canvas></div>
+  <p class="tenue"><span class="punto rojo"></span> Lectura fuera de rango &nbsp; <span class="linea-rango"></span> Límites permitidos</p>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if equipo %}
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script>
+const url = "{{ url_for('monitoreo.datos_equipo', id_equipo=equipo.id_equipo) }}";
+let grafica;
+async function cargar() {
+  const r = await fetch(url);
+  if (r.redirected || !r.ok) { location.reload(); return; }
+  const d = await r.json();
+  document.getElementById('sin-datos').hidden = d.lecturas.length > 0;
+  const etiquetas = d.lecturas.map(l => l.f), valores = d.lecturas.map(l => l.t);
+  const colores = d.lecturas.map(l => l.fr ? '#d93025' : '#1a73e8');
+  const radios = d.lecturas.map(l => l.fr ? 4 : 0);
+  const datos = {
+    labels: etiquetas,
+    datasets: [
+      {label: 'Temperatura (°C)', data: valores, borderColor: '#1a73e8', pointBackgroundColor: colores, pointBorderColor: colores, pointRadius: radios, borderWidth: 2, tension: .25,
+       segment: {borderColor: c => (d.lecturas[c.p1DataIndex] || {}).fr ? '#d93025' : '#1a73e8'}},
+      {label: 'Máximo', data: valores.map(() => d.maximo), borderColor: '#e37400', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5},
+      {label: 'Mínimo', data: valores.map(() => d.minimo), borderColor: '#e37400', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5},
+    ]};
+  if (!grafica) {
+    grafica = new Chart(document.getElementById('grafica'), {type: 'line', data: datos,
+      options: {animation: false, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+        scales: {x: {ticks: {maxTicksLimit: 12}}, y: {title: {display: true, text: '°C'}}}, plugins: {legend: {position: 'bottom'}}}});
+  } else { grafica.data = datos; grafica.update(); }
+  for (const e of d.equipos) {
+    const tarjeta = document.getElementById('eq-' + e.id);
+    if (!tarjeta) continue;
+    tarjeta.classList.toggle('fuera', e.fr);
+    tarjeta.querySelector('.valor').textContent = e.actual === null ? 'Sin datos' : e.actual.toFixed(1);
+    tarjeta.querySelector('.hora').textContent = e.hora || '';
+    tarjeta.querySelector('.estado-eq').innerHTML = e.alertas ? `<span class="etiqueta rojo">${e.alertas} alerta(s)</span>` : '';
+  }
+  document.getElementById('actualizado').textContent = new Date().toLocaleString('es-MX');
+}
+cargar();
+setInterval(cargar, 30000);
+</script>
+{% endif %}
+{% endblock %}
