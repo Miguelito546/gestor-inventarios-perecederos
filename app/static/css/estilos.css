@@ -500,12 +500,12 @@ h1 + p.tenue { margin-bottom: var(--sp-5); }
 
 /* Iconos del botón de tema: luna en modo claro, sol en modo oscuro */
 .icono-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-[data-tema] .sol { display: none; }
-:root[data-tema="oscuro"] [data-tema] .sol { display: block; }
-:root[data-tema="oscuro"] [data-tema] .luna { display: none; }
+[data-cambiar-tema] .sol { display: none; }
+:root[data-tema="oscuro"] [data-cambiar-tema] .sol { display: block; }
+:root[data-tema="oscuro"] [data-cambiar-tema] .luna { display: none; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) [data-tema] .sol { display: block; }
-  :root:not([data-tema="claro"]) [data-tema] .luna { display: none; }
+  :root:not([data-tema="claro"]) [data-cambiar-tema] .sol { display: block; }
+  :root:not([data-tema="claro"]) [data-cambiar-tema] .luna { display: none; }
 }
 
 .texto-corto { display: none; }

@@ -21,7 +21,7 @@
   });
 
   /* ---------- Modo claro / oscuro ---------- */
-  const botonTema = document.querySelector('[data-tema]');
+  const botonTema = document.querySelector('[data-cambiar-tema]');
   function temaActual() {
     return raiz.dataset.tema || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro');
   }
