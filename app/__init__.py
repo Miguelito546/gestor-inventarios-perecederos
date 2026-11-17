@@ -129,6 +129,15 @@ def crear_app():
 
     # --- Estado vacío reutilizable (RF de consulta sin resultados) ---
     @app.template_global()
+    def huella_actual():
+        """Huella de los datos al dibujar la pantalla (punto de partida para detectar cambios)."""
+        from .modulos.panel import huella_datos
+        try:
+            return huella_datos(bd(), sucursal_actual())
+        except Exception:  # noqa: BLE001  sin huella, la primera consulta la toma como punto de partida
+            return ""
+
+    @app.template_global()
     def vacio(texto, url=None, accion=None, icono="∅", tipo=""):
         boton = f'<a class="btn chico claro" href="{escape(url)}">{escape(accion)}</a>' if url and accion else ""
         return Markup(f'<div class="vacio {escape(tipo)}"><span class="vacio-icono" aria-hidden="true">{escape(icono)}</span>'

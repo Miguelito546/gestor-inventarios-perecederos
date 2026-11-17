@@ -108,6 +108,8 @@ async function cargar() {
   document.getElementById('actualizado').textContent = new Date().toLocaleString('es-MX');
 }
 window.addEventListener('cambio-tema', () => { if (ultimo) pintar(ultimo); });
+// Si otro equipo registra algo (por ejemplo, atiende una alerta), se actualiza sin recargar la página
+window.alActualizarDatos = cargar;
 cargar();
 setInterval(cargar, 30000);
 </script>

@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icono-180.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
 </head>
-<body>
+<body{% if u %} data-cambios="{{ url_for('panel.cambios') }}" data-huella="{{ huella_actual() }}"{% if request.method == 'GET' %} data-recargable{% endif %}{% endif %}>
 <a class="saltar" href="#principal">Saltar al contenido</a>
 <div class="progreso" aria-hidden="true"></div>
 {% if u %}

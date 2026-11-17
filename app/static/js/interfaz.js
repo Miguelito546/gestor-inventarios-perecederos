@@ -112,4 +112,64 @@
     iniciarCarga();
   });
 
+  /* ---------- Cambios hechos en otros equipos (consulta cada 10 s) ---------- */
+  // Todos usan la misma base de datos. Cada 10 s se pregunta si hubo cambios; si los hay:
+  //  - Monitoreo actualiza su gráfica sin recargar,
+  //  - las demás pantallas se recargan solas (conservando la posición),
+  //  - pero si estás escribiendo en un formulario, solo aparece un aviso para no borrar lo escrito.
+  const urlCambios = cuerpo.dataset.cambios;
+  if (urlCambios) {
+    const CADA_MS = 10000;
+    let huella = cuerpo.dataset.huella || null;
+    let escribiendo = false, aviso = null, consultando = false;
+    const marcarEscritura = e => { if (e.target.closest && e.target.closest('form')) escribiendo = true; };
+    document.addEventListener('input', marcarEscritura);
+    document.addEventListener('change', marcarEscritura);
+
+    function hayEdicionEnCurso() {
+      if (escribiendo) return true;
+      const activo = document.activeElement;
+      return !!(activo && activo.matches && activo.matches('input:not([type=button]):not([type=submit]), textarea, select'));
+    }
+    function recargar() {
+      if (cuerpo.dataset.recargable !== undefined) location.reload();
+      else location.href = location.pathname + location.search;   // pantalla que salió de un formulario: vuelve a pedirla
+    }
+    function mostrarAviso() {
+      if (aviso) return;
+      aviso = document.createElement('div');
+      aviso.className = 'aviso-cambios';
+      aviso.setAttribute('role', 'status');
+      aviso.innerHTML = '<span>Hay cambios nuevos de otros usuarios.</span>' +
+        '<button type="button" class="btn chico">Actualizar</button>' +
+        '<button type="button" class="btn chico fantasma" aria-label="Cerrar aviso">✕</button>';
+      const [actualizar, cerrar] = aviso.querySelectorAll('button');
+      actualizar.addEventListener('click', recargar);
+      cerrar.addEventListener('click', () => { aviso.remove(); aviso = null; });
+      cuerpo.appendChild(aviso);
+    }
+    function hubieronCambios() {
+      if (typeof window.alActualizarDatos === 'function') { window.alActualizarDatos(); return; }
+      if (hayEdicionEnCurso() || cuerpo.classList.contains('menu-abierto')) mostrarAviso();
+      else recargar();
+    }
+    async function revisar() {
+      if (consultando || document.hidden || cuerpo.classList.contains('cargando')) return;
+      consultando = true;
+      try {
+        const r = await fetch(urlCambios, { cache: 'no-store' });
+        if (r.redirected || !r.ok) return;            // sesión cerrada o falla momentánea: se reintenta luego
+        const d = await r.json();
+        if (!huella) { huella = d.h; return; }
+        if (d.h !== huella) { huella = d.h; hubieronCambios(); }
+      } catch (e) {
+        /* sin conexión por un momento: se vuelve a intentar en la siguiente vuelta */
+      } finally {
+        consultando = false;
+      }
+    }
+    setInterval(revisar, CADA_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) revisar(); });
+  }
+
 })();

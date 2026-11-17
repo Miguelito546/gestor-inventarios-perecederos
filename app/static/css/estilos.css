@@ -519,3 +519,16 @@ h1 + p.tenue { margin-bottom: var(--sp-5); }
   .texto-largo { display: none; }
   .texto-corto { display: inline; }
 }
+
+/* ---------- Aviso de cambios hechos en otros equipos ---------- */
+.aviso-cambios {
+  position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 80;
+  display: flex; align-items: center; gap: var(--sp-3); max-width: calc(100vw - 2 * var(--sp-4));
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4);
+  background: var(--c-superficie); color: var(--c-texto); border: 1px solid var(--c-borde-fuerte);
+  border-radius: var(--r-full); box-shadow: var(--sombra-lg); font-size: var(--fs-sm);
+  animation: aparecer-aviso .2s ease;
+}
+.aviso-cambios .btn { margin: 0; }
+@keyframes aparecer-aviso { from { opacity: 0; transform: translate(-50%, 8px); } }
+@media (prefers-reduced-motion: reduce) { .aviso-cambios { animation: none; } }
