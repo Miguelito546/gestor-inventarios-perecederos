@@ -40,3 +40,10 @@ Los cambios están marcados con `[v2]` dentro de los archivos.
 2. **Consulta 5 (mermas)**: el periodo ahora es "últimos 30 días" en lugar de fechas fijas de octubre.
 3. **Consultas 6b y 6c (nuevas)**: los movimientos y las alertas del lote, que RF-013 pide en la ficha de trazabilidad.
 4. Se agregó `SET time_zone = '-06:00'` (hora de Villahermosa, RNF-012).
+
+## Versión 3: base de datos compartida (noviembre 2026)
+
+1. **Tabla nueva `simulador_modos`** (al final de `01_estructura.sql`): guarda si cada equipo del simulador está en "normal", "falla" o "sin señal". Antes vivía en la memoria de una sola computadora; con la base compartida, cualquier computadora puede simular una falla. No forma parte del modelo de la SRS; es solo de apoyo para la demostración.
+2. Los scripts se probaron en **MySQL 8.0** (el que ofrece Aiven, con conexión cifrada obligatoria y llave primaria obligatoria en cada tabla) y en **MariaDB 11.4**. No hubo que cambiar nada más.
+3. La aplicación ya **no recarga los datos** al arrancar si la base existe. Solo los crea la primera vez que se conecta a una base vacía, o cuando el `admin` lo pide desde *Bitácora*.
+

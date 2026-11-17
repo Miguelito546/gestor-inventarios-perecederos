@@ -5,6 +5,7 @@ python -m venv venv || (echo No se encontro Python. Instala Python 3.12 marcando
 call venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+if not exist conexion.ini copy conexion.ejemplo.ini conexion.ini >nul
 echo.
-echo Listo. Ahora edita configuracion.py (contrasena y puerto de MariaDB) y ejecuta iniciar.bat
+echo Listo. Ahora edita conexion.ini (datos de la base de datos) y ejecuta iniciar.bat
 pause

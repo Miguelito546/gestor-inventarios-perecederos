@@ -1,4 +1,6 @@
 """Acceso a la base de datos MariaDB (RI-005)."""
+import ssl
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -8,7 +10,21 @@ from flask import g
 
 import configuracion as cfg
 
-CARPETA_SQL = Path(__file__).resolve().parent.parent / "sql"
+# Dentro del .exe los archivos de datos están en la carpeta temporal de PyInstaller
+_RAIZ = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+CARPETA_SQL = _RAIZ / "sql"
+
+
+def _opciones_ssl():
+    """Conexión cifrada para la base en la nube (Aiven la exige)."""
+    if not cfg.DB_SSL:
+        return None
+    if cfg.DB_CERTIFICADO:
+        return {"ca": cfg.DB_CERTIFICADO}          # cifrado y verificando la identidad del servidor
+    contexto = ssl.create_default_context()
+    contexto.check_hostname = False
+    contexto.verify_mode = ssl.CERT_NONE           # cifrado, sin verificar el certificado
+    return contexto
 
 
 def conectar(con_base=True, multi=False):
@@ -23,6 +39,8 @@ def conectar(con_base=True, multi=False):
         autocommit=True,
         init_command=f"SET time_zone = '{cfg.ZONA_HORARIA}'",
         client_flag=CLIENT.MULTI_STATEMENTS if multi else 0,
+        ssl=_opciones_ssl(),
+        connect_timeout=15,
     )
 
 
@@ -95,7 +113,8 @@ def base_existe():
     except pymysql.err.OperationalError as e:
         raise ConnectionError(
             f"No se pudo conectar a MariaDB en {cfg.DB_HOST}:{cfg.DB_PORT} con el usuario '{cfg.DB_USUARIO}'. "
-            f"Revisa que MariaDB esté encendido y la contraseña en configuracion.py. Detalle: {e.args[-1]}"
+            f"Revisa los datos de conexion.ini (servidor, puerto, usuario, contraseña y ssl) "
+            f"y que haya internet o que MariaDB esté encendido. Detalle: {e.args[-1]}"
         ) from e
     with cx.cursor() as c:
         c.execute("SHOW DATABASES LIKE %s", (cfg.DB_NOMBRE,))
@@ -123,3 +142,85 @@ def reiniciar_base():
     """Crea la base desde cero con la estructura y los datos ficticios de prueba."""
     ejecutar_script("01_estructura.sql")
     ejecutar_script("02_datos_prueba.sql")
+
+
+# ---------------------------------------------------------------- Base compartida entre varias copias
+TABLAS_EXTRA = """
+CREATE TABLE IF NOT EXISTS `simulador_modos` (
+    `id_equipo` INT PRIMARY KEY,
+    `modo` VARCHAR(12) NOT NULL DEFAULT 'normal'
+) ENGINE=InnoDB
+"""
+
+
+def asegurar_tablas_extra():
+    """Tablas de apoyo del prototipo (no forman parte del modelo de la SRS)."""
+    cx = conectar()
+    with cx.cursor() as c:
+        c.execute(TABLAS_EXTRA)
+    cx.close()
+
+
+def preparar_base(reiniciar=False):
+    """Crea la base con los datos de prueba SOLO si todavía no existe (o si se pide reiniciar).
+
+    Un candado en el servidor evita que dos computadoras la creen al mismo tiempo.
+    Devuelve True si se crearon o recargaron los datos.
+    """
+    base_existe()  # lanza ConnectionError con un mensaje claro si no hay conexión
+    cx = conectar(con_base=False)
+    nombre = f"gestor_preparar_{cfg.DB_NOMBRE}"[:64]
+    try:
+        with cx.cursor() as c:
+            c.execute("SELECT GET_LOCK(%s, 120) AS ok", (nombre,))
+        creada = False
+        if reiniciar or not base_existe():
+            reiniciar_base()
+            creada = True
+        asegurar_tablas_extra()
+        return creada
+    finally:
+        try:
+            with cx.cursor() as c:
+                c.execute("SELECT RELEASE_LOCK(%s)", (nombre,))
+        finally:
+            cx.close()
+
+
+class Turno:
+    """Candado con nombre en el servidor (GET_LOCK) para que una tarea corra en UNA sola copia.
+
+    La copia que lo obtiene lo conserva mientras su conexión siga abierta. Si esa copia se
+    cierra o pierde la conexión, el servidor libera el candado y otra copia toma el turno.
+    """
+
+    def __init__(self, tarea):
+        self.nombre = f"gestor_{tarea}_{cfg.DB_NOMBRE}"[:64]
+        self.cx = None
+
+    def tengo_turno(self):
+        try:
+            if self.cx is None:
+                self.cx = conectar(con_base=False)
+            with self.cx.cursor() as c:
+                c.execute("SELECT IS_USED_LOCK(%s) = CONNECTION_ID() AS mio", (self.nombre,))
+                if (c.fetchone() or {}).get("mio") == 1:
+                    return True
+                c.execute("SELECT GET_LOCK(%s, 0) AS ok", (self.nombre,))
+                return (c.fetchone() or {}).get("ok") == 1
+        except Exception:
+            self.soltar()
+            return False
+
+    def soltar(self):
+        if self.cx is not None:
+            try:
+                self.cx.close()
+            except Exception:
+                pass
+        self.cx = None
+
+    @staticmethod
+    def alguien_lo_tiene(base, tarea):
+        nombre = f"gestor_{tarea}_{cfg.DB_NOMBRE}"[:64]
+        return base.q1("SELECT IS_USED_LOCK(%s) AS id", (nombre,))["id"] is not None

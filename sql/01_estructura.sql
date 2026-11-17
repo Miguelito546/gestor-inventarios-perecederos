@@ -17,6 +17,7 @@ USE `kfc_inventory_db`;
 SET NAMES utf8mb4;
 
 -- Limpieza previa opcional de tablas (en orden inverso por las FK)
+DROP TABLE IF EXISTS `simulador_modos`;
 DROP TABLE IF EXISTS `bitacora_auditoria`;
 DROP TABLE IF EXISTS `detalle_donacion_lotes`;
 DROP TABLE IF EXISTS `propuestas_donacion`;
@@ -271,4 +272,15 @@ CREATE TABLE `bitacora_auditoria` (
     `detalles` TEXT NULL,
     `fecha_registro` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`id_usuario`) REFERENCES `usuarios`(`id_usuario`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ----------------------------------------------------------------------------
+-- 9. APOYO DEL PROTOTIPO (no forma parte del modelo de la SRS)
+-- Modo de cada equipo en el simulador IoT. Se guarda en la base para que, con la
+-- base compartida, cualquier computadora pueda "Simular falla" o "Cortar señal".
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE `simulador_modos` (
+    `id_equipo` INT PRIMARY KEY,
+    `modo` VARCHAR(12) NOT NULL DEFAULT 'normal'
 ) ENGINE=InnoDB;

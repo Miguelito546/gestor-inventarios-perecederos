@@ -9,25 +9,39 @@ import threading
 import time
 
 import configuracion as cfg
-from .bd import BD
+from .bd import BD, Turno
 from . import motor
 
 log = logging.getLogger("simulador")
 
-# id_equipo -> "normal" | "falla" | "sin_senal"
-modos = {}
+# Los modos ("normal" | "falla" | "sin_senal") se guardan en la tabla simulador_modos para que
+# cualquier computadora conectada a la base compartida pueda cambiarlos.
 _temperaturas = {}
-activo = {"valor": False}
+MODOS = ("normal", "falla", "sin_senal")
 
 
-def _siguiente(equipo):
+def leer_modos(base):
+    return {r["id_equipo"]: r["modo"] for r in base.q("SELECT id_equipo, modo FROM simulador_modos")}
+
+
+def cambiar_modo(base, id_equipo, modo):
+    base.ex("INSERT INTO simulador_modos (id_equipo, modo) VALUES (%s, %s) "
+            "ON DUPLICATE KEY UPDATE modo = VALUES(modo)", (id_equipo, modo))
+
+
+def esta_activo(base):
+    """True si alguna computadora conectada a la base está ejecutando el simulador."""
+    return Turno.alguien_lo_tiene(base, "simulador")
+
+
+def _siguiente(equipo, modo):
     minimo, maximo = float(equipo["temp_min_permitida"]), float(equipo["temp_max_permitida"])
     if equipo["tipo_equipo"] == "refrigeracion":
         objetivo = (minimo + maximo) / 2
     else:
         objetivo = maximo - 2.5  # congelador: unos grados por debajo del máximo (−20.5 °C)
     actual = _temperaturas.get(equipo["id_equipo"], objetivo)
-    if modos.get(equipo["id_equipo"]) == "falla":
+    if modo == "falla":
         actual = max(actual, maximo + 1.0) + random.uniform(0.2, 0.6)  # sube por encima del rango
         actual = min(actual, maximo + 8)
     else:
@@ -43,19 +57,22 @@ def enviar_ronda(base):
         "SELECT e.* FROM equipos_almacenamiento e JOIN sucursales s ON s.id_sucursal = e.id_sucursal "
         "WHERE s.activa = 1 AND e.estado_operativo <> 'fuera_de_servicio'"
     )
+    modos = leer_modos(base)
     for e in equipos:
-        if modos.get(e["id_equipo"]) == "sin_senal":
+        modo = modos.get(e["id_equipo"], "normal")
+        if modo == "sin_senal":
             continue
-        motor.recibir_lectura(base, {"id_equipo": e["id_equipo"], "temperatura": _siguiente(e)})
+        motor.recibir_lectura(base, {"id_equipo": e["id_equipo"], "temperatura": _siguiente(e, modo)})
 
 
 def _bucle():
+    turno = Turno("simulador")
     base = None
-    activo["valor"] = True
     while True:
         try:
-            base = base or BD()
-            enviar_ronda(base)
+            if turno.tengo_turno():  # solo una computadora genera las lecturas
+                base = base or BD()
+                enviar_ronda(base)
         except Exception as e:
             log.warning("Simulador con error: %s", e)
             if base:

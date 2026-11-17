@@ -92,15 +92,16 @@ def control_simulador():
             abort(404)
         verificar_sucursal(equipo["id_sucursal"])
         modo = request.form.get("modo", "normal")
-        if modo not in ("normal", "falla", "sin_senal"):
+        if modo not in simulador.MODOS:
             abort(400)
-        simulador.modos[id_equipo] = modo
+        simulador.cambiar_modo(base, id_equipo, modo)
         textos = {"normal": "envía temperaturas normales", "falla": "simula una falla de frío",
                   "sin_senal": "dejó de enviar lecturas"}
         flash(f"{equipo['nombre_equipo']} ahora {textos[modo]}.", "ok")
         return redirect(url_for("monitoreo.control_simulador"))
     equipos = equipos_con_actual(base, sucursal_actual())
+    modos = simulador.leer_modos(base)
     for e in equipos:
-        e["modo"] = simulador.modos.get(e["id_equipo"], "normal")
-    return render_template("simulador.html", equipos=equipos, activo=simulador.activo["valor"],
+        e["modo"] = modos.get(e["id_equipo"], "normal")
+    return render_template("simulador.html", equipos=equipos, activo=simulador.esta_activo(base),
                            intervalo=cfg.SIMULADOR_INTERVALO_SEG)

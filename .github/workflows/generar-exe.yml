@@ -1,0 +1,79 @@
+# Genera GestorInventarios.exe en una computadora Windows de GitHub.
+# - En cada cambio se puede descargar desde la pestaña Actions (artefacto).
+# - Al cambiar la rama main, además se publica en Releases como "Versión para Windows".
+name: Generar ejecutable para Windows
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-escritorio.txt
+
+      - name: Generar GestorInventarios.exe
+        run: pyinstaller --noconfirm --clean GestorInventarios.spec
+
+      - name: Verificar que el .exe trae todo
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\GestorInventarios.exe -ArgumentList '--verificar' -Wait -PassThru
+          Get-Content dist\verificacion.txt
+          Remove-Item dist\verificacion.txt, dist\gestor.log -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { exit 1 }
+
+      - name: Prueba de arranque con una base MariaDB real
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          choco install mariadb -y --no-progress | Out-Null
+          $prueba = "$env:RUNNER_TEMP\prueba"
+          New-Item -ItemType Directory $prueba | Out-Null
+          Copy-Item dist\GestorInventarios.exe $prueba
+          "[base_datos]`nservidor = 127.0.0.1`npuerto = 3306`nusuario = root`ncontrasena =`nnombre_base = kfc_inventory_db`nssl = no" | Set-Content "$prueba\conexion.ini"
+          $app = Start-Process "$prueba\GestorInventarios.exe" -PassThru
+          Start-Sleep -Seconds 45
+          Get-Content "$prueba\gestor.log"
+          $r = Invoke-WebRequest http://127.0.0.1:5000/login -UseBasicParsing
+          Write-Host "Pantalla de inicio de sesión: HTTP $($r.StatusCode)"
+          Stop-Process $app.Id -Force
+          if ($r.StatusCode -ne 200) { exit 1 }
+
+      - name: Armar el paquete
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory paquete\GestorInventarios | Out-Null
+          Copy-Item dist\GestorInventarios.exe paquete\GestorInventarios\
+          Copy-Item conexion.ejemplo.ini paquete\GestorInventarios\conexion.ini
+          Copy-Item LEEME_WINDOWS.txt paquete\GestorInventarios\LEEME.txt
+          Compress-Archive paquete\GestorInventarios GestorInventarios_Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GestorInventarios_Windows
+          path: paquete/
+
+      - name: Publicar en Releases (solo rama main)
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete version-windows -y --cleanup-tag 2>$null
+          gh release create version-windows GestorInventarios_Windows.zip `
+            --title "Versión para Windows (más reciente)" `
+            --notes "Descarga GestorInventarios_Windows.zip, descomprímelo, llena conexion.ini y abre GestorInventarios.exe. Generado del commit $env:GITHUB_SHA." `
+            --target $env:GITHUB_SHA

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 import configuracion as cfg
-from .bd import BD
+from .bd import BD, Turno
 
 log = logging.getLogger("motor")
 
@@ -292,11 +292,22 @@ def ciclo(base):
 
 
 def _bucle():
+    global INICIO
+    turno = Turno("motor")
     base = None
+    lider = False
     while True:
         try:
-            base = base or BD()
-            ciclo(base)
+            if turno.tengo_turno():
+                if not lider:
+                    # Recién tomó el turno: da tiempo a los equipos antes de marcar "sin señal"
+                    INICIO = datetime.now()
+                    lider = True
+                    log.info("Esta copia ejecuta el motor de estados y alertas")
+                base = base or BD()
+                ciclo(base)
+            else:
+                lider = False  # otra computadora lo está ejecutando
         except Exception as e:  # la base pudo reiniciarse; se reconecta en la siguiente vuelta
             log.warning("Ciclo del motor con error: %s", e)
             if base:
