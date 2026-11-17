@@ -110,6 +110,8 @@ def auditar(base, id_usuario, tabla, operacion, detalles):
 
 
 def base_existe():
+    if cfg.ERROR_CONEXION_INI:
+        raise ConnectionError(cfg.ERROR_CONEXION_INI + " Cada línea debe verse así: servidor = valor")
     try:
         cx = conectar(con_base=False)
     except pymysql.err.OperationalError as e:

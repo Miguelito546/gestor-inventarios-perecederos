@@ -20,9 +20,15 @@ else:
 
 ARCHIVO_CONEXION = CARPETA_BASE / "conexion.ini"
 
-_ini = configparser.ConfigParser(interpolation=None)  # permite "%" en contraseñas
+# interpolation=None permite "%" en contraseñas; strict=False tolera secciones o claves repetidas
+# (gana el último valor escrito).
+_ini = configparser.ConfigParser(interpolation=None, strict=False)
+ERROR_CONEXION_INI = ""
 if ARCHIVO_CONEXION.exists():
-    _ini.read(ARCHIVO_CONEXION, encoding="utf-8-sig")
+    try:
+        _ini.read(ARCHIVO_CONEXION, encoding="utf-8-sig")
+    except (configparser.Error, UnicodeDecodeError) as _e:
+        ERROR_CONEXION_INI = f"conexion.ini tiene un error de formato: {_e}"
 
 
 def _valor(entorno, seccion, clave, defecto):
