@@ -1,4 +1,5 @@
 """Acceso a la base de datos MariaDB (RI-005)."""
+import logging
 import ssl
 import sys
 from contextlib import contextmanager
@@ -13,6 +14,7 @@ import configuracion as cfg
 # Dentro del .exe los archivos de datos están en la carpeta temporal de PyInstaller
 _RAIZ = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 CARPETA_SQL = _RAIZ / "sql"
+log = logging.getLogger("bd")
 
 
 def _opciones_ssl():
@@ -122,6 +124,9 @@ def base_existe():
         if existe:
             c.execute(f"SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_schema = %s", (cfg.DB_NOMBRE,))
             existe = c.fetchone()["n"] >= 17
+        if existe:  # si una carga anterior se interrumpió, las tablas existen pero vacías
+            c.execute(f"SELECT COUNT(*) AS n FROM `{cfg.DB_NOMBRE}`.`usuarios`")
+            existe = c.fetchone()["n"] > 0
     cx.close()
     return existe
 
@@ -197,17 +202,32 @@ class Turno:
     def __init__(self, tarea):
         self.nombre = f"gestor_{tarea}_{cfg.DB_NOMBRE}"[:64]
         self.cx = None
+        self.sin_candados = False
 
     def tengo_turno(self):
+        if self.sin_candados:
+            return True
         try:
             if self.cx is None:
                 self.cx = conectar(con_base=False)
+        except Exception:
+            self.soltar()
+            return False  # sin conexión: se reintenta en la siguiente vuelta
+        try:
             with self.cx.cursor() as c:
                 c.execute("SELECT IS_USED_LOCK(%s) = CONNECTION_ID() AS mio", (self.nombre,))
                 if (c.fetchone() or {}).get("mio") == 1:
                     return True
                 c.execute("SELECT GET_LOCK(%s, 0) AS ok", (self.nombre,))
                 return (c.fetchone() or {}).get("ok") == 1
+        except pymysql.MySQLError as e:
+            self.soltar()
+            if e.args and isinstance(e.args[0], int) and not 2000 <= e.args[0] < 3000:
+                # El servidor respondió, pero no admite GET_LOCK: esta copia lo ejecuta siempre
+                log.warning("El servidor no admite candados (GET_LOCK): %s", e)
+                self.sin_candados = True
+                return True
+            return False  # se perdió la conexión: se reintenta en la siguiente vuelta
         except Exception:
             self.soltar()
             return False
@@ -223,4 +243,7 @@ class Turno:
     @staticmethod
     def alguien_lo_tiene(base, tarea):
         nombre = f"gestor_{tarea}_{cfg.DB_NOMBRE}"[:64]
-        return base.q1("SELECT IS_USED_LOCK(%s) AS id", (nombre,))["id"] is not None
+        try:
+            return base.q1("SELECT IS_USED_LOCK(%s) AS id", (nombre,))["id"] is not None
+        except pymysql.MySQLError:
+            return True  # el servidor no admite candados; el simulador corre en cada copia

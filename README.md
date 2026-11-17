@@ -15,13 +15,20 @@ Usa solo **datos ficticios** (RNF-013) y un **simulador IoT** para las temperatu
 
 ## 2. Crear la base de datos compartida en la nube (una sola vez)
 
-Lo hace **una persona del equipo**; las demás solo copian los datos en su `conexion.ini`.
+Lo hace **una persona del equipo**; las demás solo copian los datos en su `conexion.ini`. Hay dos servicios probados:
 
-1. Entra a **https://aiven.io/free-tier** y crea una cuenta gratuita (con Google o correo).
-2. Da clic en **Create service** → elige **MySQL** → plan **Free** → elige la región que te ofrezca → **Create service**. Espera a que diga **Running** (unos minutos).
-3. En la página del servicio, en **Overview → Connection information**, copia: **Host**, **Port**, **User** (`avnadmin`), **Password** y **Database name** (`defaultdb`).
-4. (Opcional, más seguro) Descarga el **CA certificate** como `ca.pem` y guárdalo junto al .exe.
-5. Llena `conexion.ini` así (con tus datos):
+| Servicio | Costo | Detalle |
+|---|---|---|
+| **Aiven, MySQL plan Developer** | $5 USD al mes, cubiertos por los créditos de prueba (no pide tarjeta) | MySQL 8 normal. Se apaga cuando termina la prueba o se acaban los créditos, a menos que agregues un pago. |
+| **TiDB Cloud Starter** | Gratis y no caduca | Compatible con MySQL (la aplicación se probó en TiDB 8.5). Si pasa tiempo sin uso, la primera conexión puede tardar unos segundos. |
+
+### Opción A: Aiven (MySQL)
+
+1. Entra a **https://console.aiven.io** y crea una cuenta.
+2. **Create service → MySQL**. En **Service tier** elige **Developer** (nunca *Professional*, que cuesta desde $250 USD al mes). En **Service summary** debe decir **$5**.
+3. Ponle nombre (por ejemplo `gestor-bd`) y da clic en **Create service**. Espera a que diga **Running**.
+4. En **Overview → Connection information** copia **Host**, **Port**, **User** (`avnadmin`), **Password** y **Database name** (`defaultdb`). Opcional: descarga el **CA certificate** como `ca.pem` y ponlo junto al .exe.
+5. Llena `conexion.ini`:
 
 ```ini
 [base_datos]
@@ -34,9 +41,29 @@ ssl         = si
 certificado_ca = ca.pem
 ```
 
-6. Abre el .exe. **La primera vez** crea las tablas y carga los datos ficticios de prueba (tarda unos segundos). Las siguientes veces, y en las demás computadoras, solo se conecta.
+### Opción B: TiDB Cloud Starter (gratis)
 
-> El plan gratuito es pequeño pero alcanza de sobra para el prototipo. Si el servicio pasa mucho tiempo sin usarse, Aiven puede apagarlo: entra a su página y da clic en **Power on**.
+1. Entra a **https://tidbcloud.com** y crea una cuenta (con Google o GitHub).
+2. Crea un clúster **Starter** (el gratuito). Elige la región más cercana (por ejemplo, de Estados Unidos).
+3. En el clúster, da clic en **Connect**. Elige **Connect With: General** (o *MySQL CLI*) y da clic en **Generate Password** (cópiala, solo se muestra una vez).
+4. Copia **HOST**, **PORT** (normalmente `4000`) y **USERNAME** (tiene la forma `xxxxxxxx.root`).
+5. Llena `conexion.ini`:
+
+```ini
+[base_datos]
+servidor    = gateway01.us-east-1.prod.aws.tidbcloud.com
+puerto      = 4000
+usuario     = xxxxxxxx.root
+contrasena  = la-contraseña-generada
+nombre_base = gestor
+ssl         = si
+certificado_ca =
+```
+
+### Después (con cualquiera de las dos)
+
+Abre el .exe. **La primera vez** crea las tablas y carga los datos ficticios de prueba (tarda unos segundos). Las siguientes veces, y en las demás computadoras, solo se conecta.
+
 > La contraseña queda escrita en `conexion.ini`; compártela solo con el equipo. Como los datos son ficticios (RNF-013), el riesgo es bajo.
 
 **Opción sin internet (red local):** en una PC con MariaDB, todos ponen en `conexion.ini` la IP de esa PC (por ejemplo `servidor = 192.168.1.50`), su puerto y `ssl = no`. Esa PC debe estar prendida, con el puerto permitido en el firewall y un usuario de MariaDB que acepte conexiones de la red.
@@ -132,7 +159,7 @@ API: `POST /api/lecturas` con JSON `{"id_equipo": 1, "temperatura": 3.2, "marca_
 
 | Mensaje | Solución |
 |---|---|
-| `No se pudo conectar con la base de datos` | Revisa internet y los datos de `conexion.ini` (servidor, puerto, usuario, contraseña, `ssl = si` para Aiven). En Aiven, que el servicio diga **Running**. Con MariaDB local, que el servicio esté encendido. |
+| `No se pudo conectar con la base de datos` | Revisa internet y los datos de `conexion.ini` (servidor, puerto, usuario, contraseña, `ssl = si` para Aiven). En Aiven, que el servicio diga **Running**; en TiDB, que el usuario lleve el prefijo (`xxxx.root`). Con MariaDB local, que el servicio esté encendido. |
 | Windows no abre la ventana | Se abre el navegador como respaldo. Revisa `gestor.log`; en Windows 10 antiguo puede faltar *Microsoft Edge WebView2 Runtime* (se descarga gratis de Microsoft). |
 | `'python' no se reconoce como un comando` | Reinstala Python marcando "Add python.exe to PATH". |
 | Puerto 5000 ocupado | La aplicación elige otro puerto libre sola. Para fijar uno, cambia `puerto` en la sección `[aplicacion]` de `conexion.ini`. |

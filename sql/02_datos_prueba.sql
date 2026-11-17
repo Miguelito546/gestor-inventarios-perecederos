@@ -150,7 +150,7 @@ WITH RECURSIVE pasos(n) AS (
 ),
 valores AS (
     SELECT e.id_equipo, e.temp_min_permitida, e.temp_max_permitida, p.n,
-           @ahora - INTERVAL (p.n * 10) MINUTE AS momento,
+           DATE_SUB(@ahora, INTERVAL p.n * 10 MINUTE) AS momento,
            CASE
                WHEN e.id_equipo = 1 AND p.n BETWEEN 118 AND 121 THEN 5.8 + (121 - p.n) * 0.2
                WHEN e.id_equipo = 4 AND p.n <= 4 THEN 6.6 - p.n * 0.3

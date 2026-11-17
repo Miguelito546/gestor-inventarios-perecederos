@@ -46,4 +46,5 @@ Los cambios están marcados con `[v2]` dentro de los archivos.
 1. **Tabla nueva `simulador_modos`** (al final de `01_estructura.sql`): guarda si cada equipo del simulador está en "normal", "falla" o "sin señal". Antes vivía en la memoria de una sola computadora; con la base compartida, cualquier computadora puede simular una falla. No forma parte del modelo de la SRS; es solo de apoyo para la demostración.
 2. Los scripts se probaron en **MySQL 8.0** (el que ofrece Aiven, con conexión cifrada obligatoria y llave primaria obligatoria en cada tabla) y en **MariaDB 11.4**. No hubo que cambiar nada más.
 3. La aplicación ya **no recarga los datos** al arrancar si la base existe. Solo los crea la primera vez que se conecta a una base vacía, o cuando el `admin` lo pide desde *Bitácora*.
+4. Para que también funcione en **TiDB Cloud** (opción gratuita compatible con MySQL): en `02_datos_prueba.sql`, `@ahora - INTERVAL (p.n * 10) MINUTE` se escribió como `DATE_SUB(@ahora, INTERVAL p.n * 10 MINUTE)`, que da el mismo resultado en los tres motores.
 
