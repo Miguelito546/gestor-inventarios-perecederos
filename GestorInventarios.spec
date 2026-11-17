@@ -11,6 +11,7 @@ a = Analysis(
         ("app/static", "app/static"),
         ("sql", "sql"),
         ("conexion.ejemplo.ini", "."),
+        ("recursos/icono.ico", "recursos"),
     ],
     hiddenimports=collect_submodules("app") + ["pymysql", "fpdf"],
     excludes=["matplotlib", "numpy", "pandas", "PyQt5", "PyQt6", "PySide2", "PySide6"],
@@ -28,5 +29,6 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,          # sin ventana negra
+    icon="recursos/icono.ico",  # ícono del programa (Explorador, barra de tareas y ventana)
     disable_windowed_traceback=False,
 )

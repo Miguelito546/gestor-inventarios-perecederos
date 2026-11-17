@@ -101,6 +101,8 @@
 
 /* ---------- 3. Base y accesibilidad ---------- */
 *, *::before, *::after { box-sizing: border-box; }
+/* Lo que lleva el atributo hidden nunca se muestra, aunque su clase le dé display: flex o grid */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; font: var(--fw-normal) 15px/var(--interlineado) var(--fuente);

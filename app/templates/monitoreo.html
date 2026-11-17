@@ -2,7 +2,7 @@
 {% block titulo %}Monitoreo{% endblock %}
 {% block contenido %}
 <h1>Monitoreo de temperatura <span class="codigo-rf">RF-009</span></h1>
-<p class="tenue">La vista se actualiza sola cada 30 segundos (RI-003). Última actualización: <span id="actualizado">{{ ahora|fecha }}</span></p>
+<p class="tenue">La vista se actualiza sola cada 30 segundos (RI-003). Última actualización: <span id="actualizado">{{ ahora|fecha }}</span><span id="estado-actualizacion" role="status"></span></p>
 <div class="equipos">
   {% for e in equipos %}
   <a id="eq-{{ e.id_equipo }}" class="equipo {{ 'elegido' if equipo and e.id_equipo == equipo.id_equipo }} {{ 'fuera' if e.fuera_de_rango }}" href="{{ url_for('monitoreo.ver', equipo=e.id_equipo) }}">
@@ -18,7 +18,7 @@
 <section class="tarjeta">
   <h2>{{ equipo.nombre_equipo }} · últimas 24 h</h2>
   <div id="sin-datos" hidden>{{ vacio("Este equipo aún no tiene lecturas en las últimas 24 horas.") }}</div>
-  <div id="error-grafica" class="aviso error" role="alert" hidden><div>No se pudieron cargar las lecturas. Revisa la conexión.</div>
+  <div id="error-grafica" class="aviso error" role="alert" hidden><div>No se pudieron cargar las lecturas. Revisa la conexión a internet; se reintentará solo.</div>
     <button type="button" class="btn chico claro" onclick="cargar()">Reintentar</button></div>
   <div class="grafica" id="contenedor-grafica" aria-busy="true">
     <div class="esqueleto" aria-hidden="true"></div>
@@ -57,20 +57,41 @@ function pintar(d) {
       scales: {x: {...ejes, ticks: {...ejes.ticks, maxTicksLimit: 12}}, y: {...ejes, title: {display: true, text: '°C', color: texto}}},
       plugins: {legend: {position: 'bottom', labels: {color: texto}}}}});
 }
+// Si una actualización falla (por ejemplo, un corte breve de internet con la base en la nube),
+// se conserva la última gráfica, se reintenta en unos segundos y el aviso rojo solo aparece
+// si no hay datos o si falla varias veces seguidas.
+let fallos = 0, reintento = null, saliendo = false;
+window.addEventListener('pagehide', () => { saliendo = true; });
+window.addEventListener('beforeunload', () => { saliendo = true; });
 async function cargar() {
   const contenedor = document.getElementById('contenedor-grafica');
   const error = document.getElementById('error-grafica');
+  const estado = document.getElementById('estado-actualizacion');
+  clearTimeout(reintento);
   let d;
   try {
-    const r = await fetch(url);
-    if (r.redirected) { location.reload(); return; }
-    if (!r.ok) throw new Error(r.status);
+    const control = new AbortController();
+    const limite = setTimeout(() => control.abort(), 20000);
+    const r = await fetch(url, {cache: 'no-store', signal: control.signal});
+    clearTimeout(limite);
+    if (r.redirected) { location.reload(); return; }   // la sesión se cerró: vuelve a iniciar sesión
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     d = await r.json();
   } catch (e) {
-    if (e.name !== 'AbortError' && !document.hidden) error.hidden = false;
+    if (saliendo) return;                               // se está cambiando de pantalla
+    fallos++;
+    if (!ultimo || fallos >= 3) {
+      error.hidden = false;
+      estado.textContent = '';
+    } else {
+      estado.textContent = ' · No se pudo actualizar, reintentando…';
+    }
+    reintento = setTimeout(cargar, fallos < 3 ? 5000 : 30000);
     return;
   }
+  fallos = 0;
   error.hidden = true;
+  estado.textContent = '';
   ultimo = d;
   document.getElementById('sin-datos').hidden = d.lecturas.length > 0;
   contenedor.hidden = d.lecturas.length === 0;

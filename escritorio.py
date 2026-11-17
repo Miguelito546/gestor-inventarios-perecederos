@@ -185,6 +185,10 @@ def modo_navegador_con_aviso():
     raiz.title(TITULO)
     raiz.geometry("460x170")
     try:
+        raiz.iconbitmap(str(_RAIZ / "recursos" / "icono.ico"))
+    except Exception:  # noqa: BLE001  sin ícono no pasa nada
+        pass
+    try:
         url = arrancar_aplicacion().replace("127.0.0.1", "localhost")
     except Exception as e:
         messagebox.showerror(TITULO, f"No se pudo conectar con la base de datos.\n\n{e}\n\n"

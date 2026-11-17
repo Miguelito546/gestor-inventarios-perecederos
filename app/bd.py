@@ -2,6 +2,7 @@
 import logging
 import ssl
 import sys
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -50,7 +51,13 @@ class BD:
     """Envoltura pequeña sobre una conexión: q() lista, q1() un registro, ex() escritura."""
 
     def __init__(self):
-        self.cx = conectar()
+        try:
+            self.cx = conectar()
+        except pymysql.OperationalError as e:
+            # Un corte breve de red con la base en la nube: se reintenta una vez antes de fallar
+            log.warning("Reintentando la conexión con la base: %s", e)
+            time.sleep(1)
+            self.cx = conectar()
 
     def q(self, sql, args=None):
         with self.cx.cursor() as c:
