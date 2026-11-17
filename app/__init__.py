@@ -1,7 +1,9 @@
 """Gestor Inteligente de Inventarios y Trazabilidad de Productos Perecederos — prototipo v1."""
+import hashlib
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 from markupsafe import Markup, escape
@@ -31,6 +33,29 @@ def crear_app():
         JSON_AS_ASCII=False,
     )
     app.teardown_appcontext(cerrar_bd)
+
+    # --- Archivos estáticos: cada versión de un .css o .js lleva su propia huella (?v=...) ---
+    # Así el navegador o la ventana del .exe nunca usan una copia vieja guardada en caché.
+    huellas = {}
+
+    @app.url_defaults
+    def huella_estatica(endpoint, valores):
+        if endpoint == "static" and "filename" in valores:
+            nombre = valores["filename"]
+            if nombre not in huellas:
+                ruta = Path(app.static_folder) / nombre
+                try:
+                    huellas[nombre] = hashlib.md5(ruta.read_bytes(), usedforsecurity=False).hexdigest()[:10]
+                except OSError:
+                    huellas[nombre] = None
+            if huellas[nombre]:
+                valores["v"] = huellas[nombre]
+
+    @app.after_request
+    def sin_copias_viejas(respuesta):
+        if request.endpoint == "static":
+            respuesta.headers["Cache-Control"] = "no-cache"  # siempre pregunta si cambió (responde 304 si no)
+        return respuesta
 
     # --- Formatos RNF-012: DD/MM/AAAA ---
     @app.template_filter("fecha")
