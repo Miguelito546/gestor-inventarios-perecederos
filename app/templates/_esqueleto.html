@@ -1,0 +1,18 @@
+{# Se muestra mientras carga la siguiente pantalla (si tarda más de un momento) #}
+<div class="pagina-esqueleto" aria-hidden="true">
+  <div class="esqueleto esq-titulo"></div>
+  <div class="esqueleto esq-linea" style="width: 55%"></div>
+  <div class="cifras" style="margin-top: 24px">
+    <div class="esqueleto esq-cifra"></div><div class="esqueleto esq-cifra"></div>
+    <div class="esqueleto esq-cifra"></div><div class="esqueleto esq-cifra"></div>
+  </div>
+  <div class="rejilla">
+    <div class="tarjeta"><div class="esqueleto esq-linea" style="width: 40%; height: 18px"></div>
+      <div class="esqueleto esq-linea"></div><div class="esqueleto esq-linea" style="width: 85%"></div>
+      <div class="esqueleto esq-linea" style="width: 70%"></div><div class="esqueleto esq-linea" style="width: 90%"></div></div>
+    <div class="tarjeta"><div class="esqueleto esq-linea" style="width: 50%; height: 18px"></div>
+      <div class="esqueleto esq-linea"></div><div class="esqueleto esq-linea" style="width: 75%"></div>
+      <div class="esqueleto esq-linea" style="width: 60%"></div><div class="esqueleto esq-linea" style="width: 80%"></div></div>
+  </div>
+</div>
+<p class="solo-lector" aria-live="polite" id="estado-carga"></p>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Trazabilidad{% endblock %}
 {% block contenido %}
-<h1>Trazabilidad (RF-013)</h1>
+<h1>Trazabilidad <span class="codigo-rf">RF-013</span></h1>
 <div class="rejilla">
 <section class="tarjeta">
   <h2>Buscar un lote</h2>
@@ -34,7 +34,7 @@
       <td><span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span></td></tr>
     {% endfor %}
   </table></div>
-  {% else %}<p>Lote no encontrado.</p>{% endif %}
+  {% else %}{{ vacio("No encontramos lotes con esa búsqueda. Prueba con parte del código, el insumo o el proveedor.") }}{% endif %}
 </section>
 {% endif %}
 {% endblock %}

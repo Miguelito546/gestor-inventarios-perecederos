@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Bitácora{% endblock %}
 {% block contenido %}
-<h1>Bitácora de auditoría (RNF-011)</h1>
+<h1>Bitácora de auditoría <span class="codigo-rf">RNF-011</span></h1>
 <div class="tabla-scroll"><table class="tabla">
   <tr><th>Fecha</th><th>Usuario</th><th>Tabla</th><th>Operación</th><th>Detalle</th></tr>
   {% for b in registros %}

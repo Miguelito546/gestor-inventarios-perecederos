@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 {% block contenido %}
-<h1>Hola, {{ u.nombre_completo.split(' ')[0] }}</h1>
-<p class="tenue">Fecha y hora del sistema: {{ ahora|fecha }}</p>
+<div class="encabezado">
+  <div><h1>Hola, {{ u.nombre_completo.split(' ')[0] }}</h1>
+    <p>Resumen de {{ u.sucursal or 'la sucursal seleccionada' }} · {{ ahora|fecha }}</p></div>
+  <div class="acciones">
+    <a class="btn claro" href="{{ url_for('inventario.registrar_movimiento') }}">Consumo / merma</a>
+    <a class="btn" href="{{ url_for('inventario.registrar_lote') }}">+ Registrar lote</a>
+  </div>
+</div>
 
 <div class="cifras">
   {% for e, clase in [('Fresco','verde'), ('Próximo a vencer','amarillo'), ('Vencido','rojo'), ('Retenido','morado')] %}
   <a class="cifra {{ clase }}" href="{{ url_for('inventario.consultar', estado=e) }}"><b>{{ estados.get(e, 0) }}</b><span>{{ e }}</span></a>
   {% endfor %}
-  <a class="cifra gris" href="{{ url_for('alertas.lista') }}"><b>{{ alertas_pendientes }}</b><span>Alertas activas</span></a>
+  <a class="cifra rojo {{ 'destacada' if alertas_pendientes }}" href="{{ url_for('alertas.lista') }}"><b>{{ alertas_pendientes }}</b><span>Alertas activas</span></a>
   {% if u.rol != 'Empleado' %}<a class="cifra gris" href="{{ url_for('aprovechamiento.descuentos') }}"><b>{{ pendientes_desc }}</b><span>Descuentos por autorizar</span></a>{% endif %}
 </div>
 
@@ -19,7 +25,7 @@
         <span class="etiqueta {{ a.severidad|clase_sev }}">{{ a.severidad|nombre }}</span>
         <span><b>{{ a.tipo_alerta|nombre }}</b> · {{ a.codigo_lote or a.nombre_equipo }}<br><small class="tenue">{{ a.descripcion }}</small></span>
       </a>
-    {% else %}<p class="tenue">Sin alertas activas.</p>{% endfor %}
+    {% else %}{{ vacio("Sin alertas activas.", icono="✓", tipo="ok") }}{% endfor %}
   </section>
   <section class="tarjeta">
     <h2>Equipos de la sucursal</h2>
@@ -30,7 +36,7 @@
         <td class="{{ 'texto-rojo' if e.actual is not none and (e.actual > e.temp_max_permitida or e.actual < e.temp_min_permitida) }}">
           {{ e.actual|num(1) if e.actual is not none else '—' }} °C</td>
         <td>{{ e.temp_min_permitida|num(1) }} a {{ e.temp_max_permitida|num(1) }} °C</td></tr>
-      {% else %}<tr><td colspan="3" class="tenue">Sin equipos registrados.</td></tr>{% endfor %}
+      {% else %}<tr class="fila-vacia"><td colspan="3">{{ vacio("Sin equipos registrados.") }}</td></tr>{% endfor %}
     </table>
   </section>
   <section class="tarjeta">
@@ -40,7 +46,7 @@
       <tr><td><a href="{{ url_for('trazabilidad.lote', id_lote=l.id_lote) }}">{{ l.codigo_lote }}</a><br><small>{{ l.insumo }}</small></td>
         <td>{{ l.cantidad_actual|num }} {{ l.unidad_medida }}</td>
         <td><span class="etiqueta {{ l.estado_lote|clase_estado }}">{{ l.estado_lote }}</span><br><small>Caduca {{ l.fecha_caducidad|fecha }}</small></td></tr>
-      {% else %}<tr><td class="tenue">Todo en orden.</td></tr>{% endfor %}
+      {% else %}<tr class="fila-vacia"><td>{{ vacio("Todo en orden: ningún lote requiere atención.", icono="✓", tipo="ok") }}</td></tr>{% endfor %}
     </table>
   </section>
 </div>

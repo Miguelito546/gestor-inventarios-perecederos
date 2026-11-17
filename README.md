@@ -139,6 +139,7 @@ Desde el celular (misma red Wi-Fi, con el .exe abierto en una PC): abre `http://
 | RF-014, RF-015 | `app/modulos/aprovechamiento.py` |
 | RF-016 | `app/modulos/reportes.py` (módulo Reportes) |
 | RF-017, RF-018, bitácora | `app/modulos/administracion.py` |
+| Diseño: tokens (colores, tipografía, espacios), modo oscuro, responsive y estados de carga/vacío/error | `app/static/css/estilos.css`, `app/static/js/interfaz.js`, `app/templates/base.html` |
 | Ventana de escritorio (.exe) y arranque | `escritorio.py`, `GestorInventarios.spec`, `app/arranque.py`, `.github/workflows/generar-exe.yml` |
 | Conexión a la base compartida y turnos entre computadoras | `conexion.ini`, `configuracion.py`, `app/bd.py` |
 | Base de datos (estructura, datos, consultas) | `sql/` (los cambios respecto al script original están en `sql/CAMBIOS.md`) |

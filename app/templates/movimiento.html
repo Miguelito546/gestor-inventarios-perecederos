@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Consumo o merma{% endblock %}
 {% block contenido %}
-<h1>Registrar consumo o merma (RF-007)</h1>
+<h1>Registrar consumo o merma <span class="codigo-rf">RF-007</span></h1>
 <form method="get" class="tarjeta filtros">
   <label>Tipo de movimiento <select name="tipo" onchange="this.form.submit()">
     <option {% if tipo == 'Consumo' %}selected{% endif %}>Consumo</option><option {% if tipo == 'Merma' %}selected{% endif %}>Merma</option></select></label>

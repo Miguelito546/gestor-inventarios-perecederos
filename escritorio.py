@@ -90,10 +90,33 @@ ESTILO = """
 </style>
 """
 
-PANTALLA_CARGA = f"""<!doctype html><html lang="es"><head><meta charset="utf-8">{ESTILO}</head>
-<body><div class="caja" style="text-align:center"><div class="giro"></div>
-<h1>{TITULO}</h1><p>Conectando con la base de datos compartida...</p>
-<p class="detalle">{html.escape(cfg.DB_HOST)}:{cfg.DB_PORT}</p></div></body></html>"""
+PANTALLA_CARGA = f"""<!doctype html><html lang="es"><head><meta charset="utf-8">{ESTILO}
+<style>
+  body {{ display: block; }}
+  .marco {{ display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; width: 100vw; }}
+  .lat {{ border-right: 1px solid #dde3ea; padding: 20px 14px; background: #fff; }}
+  .area {{ padding: 24px; }}
+  .esq {{ position: relative; overflow: hidden; background: #e6eaf0; border-radius: 6px; margin-bottom: 10px; }}
+  .esq::after {{ content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, #f3f5f8, transparent); animation: b 1.3s infinite; }}
+  @keyframes b {{ to {{ transform: translateX(100%); }} }}
+  .fila {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }}
+  .estado {{ position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1b2430; color: #fff;
+    padding: 8px 16px; border-radius: 999px; font-size: 13px; }}
+  @media (prefers-color-scheme: dark) {{
+    .lat {{ background: #141920; border-color: #2a313b; }} .esq {{ background: #232a33; }}
+    .esq::after {{ background: linear-gradient(90deg, transparent, #2d3540, transparent); }}
+  }}
+  @media (max-width: 800px) {{ .marco {{ grid-template-columns: 1fr; }} .lat {{ display: none; }} }}
+</style></head>
+<body aria-busy="true"><div class="marco" aria-hidden="true">
+  <div class="lat"><div class="esq" style="height:34px;width:70%"></div><br>
+    {"".join('<div class="esq" style="height:14px;width:%d%%"></div>' % w for w in (60, 75, 55, 80, 50, 65, 70, 45))}</div>
+  <div class="area"><div class="esq" style="height:26px;width:30%"></div><div class="esq" style="height:14px;width:45%"></div>
+    <div class="fila">{"".join('<div class="esq" style="height:86px"></div>' for _ in range(4))}</div>
+    <div class="fila" style="grid-template-columns: 1fr 1fr">{"".join('<div class="esq" style="height:220px"></div>' for _ in range(2))}</div></div>
+</div>
+<p class="estado" role="status">Conectando con la base de datos ({html.escape(cfg.DB_HOST)})…</p></body></html>"""
 
 
 def pantalla_error(mensaje):

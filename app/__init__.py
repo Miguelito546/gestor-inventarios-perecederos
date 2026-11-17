@@ -3,7 +3,8 @@ import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from flask import Flask, flash, g, redirect, request, session, url_for
+from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from markupsafe import Markup, escape
 
 import configuracion as cfg
 from .bd import bd, cerrar_bd
@@ -100,6 +101,26 @@ def crear_app():
             if u["rol"] == "Administrador":
                 datos["sucursales_menu"] = bd().q("SELECT id_sucursal, nombre FROM sucursales ORDER BY id_sucursal")
         return datos
+
+    # --- Estado vacío reutilizable (RF de consulta sin resultados) ---
+    @app.template_global()
+    def vacio(texto, url=None, accion=None, icono="∅", tipo=""):
+        boton = f'<a class="btn chico claro" href="{escape(url)}">{escape(accion)}</a>' if url and accion else ""
+        return Markup(f'<div class="vacio {escape(tipo)}"><span class="vacio-icono" aria-hidden="true">{escape(icono)}</span>'
+                      f'<p>{escape(texto)}</p>{boton}</div>')
+
+    # --- Pantallas de error con opción de reintentar ---
+    @app.errorhandler(404)
+    def no_encontrado(_e):
+        return render_template("error.html", titulo="No encontramos esta página",
+                               mensaje="Puede que el enlace sea incorrecto o que el registro ya no exista."), 404
+
+    @app.errorhandler(500)
+    def error_interno(_e):
+        g.usuario = None  # no vuelve a consultar la base, que pudo ser la causa del error
+        return render_template("error.html", titulo="Algo salió mal",
+                               mensaje="No se pudo completar la operación. Revisa la conexión con la base de datos "
+                                       "y vuelve a intentarlo."), 500
 
     @app.errorhandler(403)
     def prohibido(_e):
