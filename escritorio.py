@@ -6,6 +6,7 @@ Es el programa que se convierte en GestorInventarios.exe. También se puede prob
 Lee la conexión de conexion.ini (junto al .exe). Si no existe, lo crea a partir de la plantilla.
 Mientras la ventana está abierta, la aplicación también se puede usar desde el navegador.
 """
+import base64
 import html
 import logging
 import os
@@ -21,7 +22,8 @@ import configuracion as cfg
 TITULO = "Gestor de Inventarios Perecederos"
 _RAIZ = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 log = logging.getLogger("escritorio")
-estado = {"url": None}
+estado = {"url": None, "ventana": None, "guardados": set()}
+TIPOS_ARCHIVO = {".pdf": "Archivo PDF (*.pdf)", ".csv": "Archivo CSV para Excel (*.csv)"}
 
 
 def configurar_registro():
@@ -54,8 +56,15 @@ def abrir_archivo(ruta):
         subprocess.Popen(["xdg-open", ruta])
 
 
+def carpeta_descargas():
+    for carpeta in (Path.home() / "Downloads", Path.home() / "Descargas", Path.home() / "Documents"):
+        if carpeta.is_dir():
+            return str(carpeta)
+    return ""
+
+
 class Api:
-    """Funciones que la pantalla de error puede llamar desde la ventana."""
+    """Funciones que las pantallas pueden llamar desde la ventana (pywebview.api.*)."""
 
     def abrir_conexion(self):
         asegurar_conexion_ini()
@@ -63,6 +72,46 @@ class Api:
 
     def abrir_carpeta(self):
         abrir_archivo(cfg.CARPETA_BASE)
+
+    def guardar_archivo(self, nombre, datos_base64):
+        """Guarda un reporte (PDF o CSV) con el cuadro "Guardar como" de Windows.
+
+        Aunque la persona cambie el nombre y borre la extensión, el archivo siempre
+        queda como .pdf o .csv. Devuelve la ruta guardada, o None si se canceló.
+        """
+        import webview
+
+        nombre = Path(str(nombre)).name or "reporte.pdf"
+        extension = Path(nombre).suffix.lower()
+        if extension not in TIPOS_ARCHIVO:
+            extension = ".pdf"
+            nombre += extension
+        ventana = estado["ventana"] or webview.windows[0]
+        elegido = ventana.create_file_dialog(webview.FileDialog.SAVE, directory=carpeta_descargas(),
+                                             save_filename=nombre, file_types=(TIPOS_ARCHIVO[extension],))
+        if not elegido:
+            return None
+        ruta = Path(elegido[0] if isinstance(elegido, (list, tuple)) else elegido)
+        if ruta.suffix.lower() != extension:
+            ruta = ruta.with_name(ruta.name + extension)
+        ruta.write_bytes(base64.b64decode(datos_base64))
+        estado["guardados"].add(str(ruta))
+        log.info("Reporte guardado en %s", ruta)
+        return str(ruta)
+
+    def abrir_guardado(self, ruta):
+        """Abre un archivo que se acaba de guardar (solo los guardados en esta sesión)."""
+        if ruta in estado["guardados"]:
+            abrir_archivo(ruta)
+
+    def mostrar_guardado(self, ruta):
+        """Abre la carpeta del archivo guardado y lo deja seleccionado."""
+        if ruta not in estado["guardados"]:
+            return
+        if sys.platform.startswith("win"):
+            subprocess.Popen(["explorer", "/select,", ruta])  # noqa: S603,S607
+        else:
+            abrir_archivo(Path(ruta).parent)
 
 
 # ------------------------------------------------------------------ Pantallas internas
@@ -165,6 +214,7 @@ def modo_ventana(webview):
     ]
     ventana = webview.create_window(TITULO, html=PANTALLA_CARGA, js_api=Api(), width=1280, height=820,
                                     min_size=(900, 600), menu=menu, text_select=True)
+    estado["ventana"] = ventana
 
     def al_iniciar():
         try:

@@ -532,3 +532,4 @@ h1 + p.tenue { margin-bottom: var(--sp-5); }
 .aviso-cambios .btn { margin: 0; }
 @keyframes aparecer-aviso { from { opacity: 0; transform: translate(-50%, 8px); } }
 @media (prefers-reduced-motion: reduce) { .aviso-cambios { animation: none; } }
+.aviso-flotante.error { border-color: var(--c-peligro); }

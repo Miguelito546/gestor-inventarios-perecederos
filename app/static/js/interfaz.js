@@ -106,11 +106,77 @@
     const boton = e.submitter;
     // Exportar PDF o CSV descarga un archivo y no cambia de pantalla
     const descarga = boton && boton.name === 'formato' && /^(pdf|csv)$/.test(boton.value) || boton && boton.value === 'csv';
-    if (descarga) return;
+    if (descarga) {
+      // En la ventana del programa (.exe) se usa el cuadro "Guardar como" de Windows,
+      // que siempre deja la extensión .pdf o .csv aunque se cambie el nombre.
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.guardar_archivo) {
+        e.preventDefault();
+        guardarEnEscritorio(form, boton);
+      }
+      return;
+    }
     form.dataset.enviando = '1';
     if (boton && boton.classList.contains('btn')) { boton.classList.add('ocupado'); boton.setAttribute('aria-busy', 'true'); }
     iniciarCarga();
   });
+
+  /* ---------- Guardar reportes desde la ventana del programa (.exe) ---------- */
+  function nombreDeArchivo(respuesta, boton) {
+    const cabecera = respuesta.headers.get('Content-Disposition') || '';
+    const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cabecera);
+    return m ? decodeURIComponent(m[1]) : 'reporte.' + (boton.value === 'csv' ? 'csv' : 'pdf');
+  }
+  function aBase64(blob) {
+    return new Promise((ok, mal) => {
+      const lector = new FileReader();
+      lector.onload = () => ok(String(lector.result).split(',')[1] || '');
+      lector.onerror = () => mal(lector.error);
+      lector.readAsDataURL(blob);
+    });
+  }
+  function avisoFlotante(html, tipo) {
+    document.querySelectorAll('.aviso-flotante').forEach(a => a.remove());
+    const aviso = document.createElement('div');
+    aviso.className = 'aviso-cambios aviso-flotante' + (tipo ? ' ' + tipo : '');
+    aviso.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+    aviso.innerHTML = html + '<button type="button" class="btn chico fantasma" aria-label="Cerrar aviso" data-cerrar>✕</button>';
+    aviso.querySelector('[data-cerrar]').addEventListener('click', () => aviso.remove());
+    cuerpo.appendChild(aviso);
+    return aviso;
+  }
+  async function guardarEnEscritorio(form, boton) {
+    if (boton.classList.contains('ocupado')) return;
+    boton.classList.add('ocupado'); boton.setAttribute('aria-busy', 'true');
+    try {
+      const datos = new FormData(form);
+      datos.append(boton.name, boton.value);
+      const metodo = (form.method || 'get').toLowerCase();
+      const url = new URL(form.getAttribute('action') || location.href, location.href);
+      let respuesta;
+      if (metodo === 'get') {
+        url.search = new URLSearchParams(datos).toString();
+        respuesta = await fetch(url, { cache: 'no-store' });
+      } else {
+        respuesta = await fetch(url, { method: 'POST', body: datos });
+      }
+      const tipo = respuesta.headers.get('Content-Type') || '';
+      if (!respuesta.ok || tipo.startsWith('text/html')) { location.href = respuesta.url; return; }  // aviso o sesión cerrada
+      const nombre = nombreDeArchivo(respuesta, boton);
+      const ruta = await window.pywebview.api.guardar_archivo(nombre, await aBase64(await respuesta.blob()));
+      if (!ruta) return;  // canceló el cuadro de guardar
+      const archivo = ruta.split(/[\\/]/).pop();
+      const aviso = avisoFlotante('<span>Se guardó <b></b></span>' +
+        '<button type="button" class="btn chico" data-abrir>Abrir</button>' +
+        '<button type="button" class="btn chico claro" data-carpeta>Ver en carpeta</button>');
+      aviso.querySelector('b').textContent = archivo;
+      aviso.querySelector('[data-abrir]').addEventListener('click', () => window.pywebview.api.abrir_guardado(ruta));
+      aviso.querySelector('[data-carpeta]').addEventListener('click', () => window.pywebview.api.mostrar_guardado(ruta));
+    } catch (err) {
+      avisoFlotante('<span>No se pudo guardar el archivo. Revisa la conexión e inténtalo de nuevo.</span>', 'error');
+    } finally {
+      boton.classList.remove('ocupado'); boton.removeAttribute('aria-busy');
+    }
+  }
 
   /* ---------- Cambios hechos en otros equipos (consulta cada 10 s) ---------- */
   // Todos usan la misma base de datos. Cada 10 s se pregunta si hubo cambios; si los hay:
