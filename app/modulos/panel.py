@@ -1,10 +1,44 @@
-"""Panel de inicio según el rol del usuario."""
-from flask import Blueprint, redirect, render_template, request, session, url_for
+"""Panel de inicio según el rol del usuario y aviso de cambios hechos en otros equipos."""
+import hashlib
+import logging
+
+from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 
 from ..bd import bd
 from ..seguridad import es_admin, requiere_sesion, sucursal_actual
 
 bp = Blueprint("panel", __name__)
+log = logging.getLogger("cambios")
+
+
+def huella_datos(base, id_sucursal):
+    """Resumen corto de los datos que se ven en pantalla. Si cambia, alguien (otro equipo o el
+    motor automático) registró algo. Solo usa MAX/COUNT sobre llaves e índices: es muy ligera.
+    Las lecturas de temperatura no cuentan (Monitoreo se actualiza aparte cada 30 s)."""
+    fila = base.q1(
+        "SELECT "
+        " (SELECT MAX(id_bitacora) FROM bitacora_auditoria) AS b,"
+        " (SELECT MAX(id_historial_estado) FROM historial_estados_lote) AS h,"
+        " (SELECT MAX(id_movimiento) FROM movimientos_inventario) AS m,"
+        " (SELECT MAX(id_lote) FROM lotes) AS l,"
+        " (SELECT MAX(id_atencion) FROM historial_atencion_alertas) AS t,"
+        " (SELECT CONCAT(COUNT(*), '-', COALESCE(MAX(id_alerta), 0), '-', COALESCE(SUM(estado_alerta <> 'Cerrada'), 0))"
+        "    FROM alertas WHERE id_sucursal = %s) AS a,"
+        " (SELECT CONCAT(COUNT(*), '-', COALESCE(MAX(id_descuento), 0), '-', COALESCE(SUM(estado_autorizacion = 'Pendiente'), 0))"
+        "    FROM sugerencias_descuento) AS d,"
+        " (SELECT CONCAT(COUNT(*), '-', COALESCE(SUM(estado_propuesta = 'Propuesta'), 0)) FROM propuestas_donacion) AS p,"
+        " (SELECT COALESCE(SUM(CRC32(CONCAT(id_equipo, ':', estado_operativo))), 0)"
+        "    FROM equipos_almacenamiento WHERE id_sucursal = %s) AS e",
+        (id_sucursal or 0, id_sucursal or 0))
+    texto = "|".join(str(fila[k]) for k in "bhmltadpe")
+    return hashlib.md5(texto.encode(), usedforsecurity=False).hexdigest()[:16]
+
+
+@bp.route("/api/cambios")
+@requiere_sesion
+def cambios():
+    """Cada pantalla lo consulta cada 10 s para enterarse de cambios hechos en otros equipos."""
+    return jsonify(h=huella_datos(bd(), sucursal_actual()))
 
 
 @bp.route("/")

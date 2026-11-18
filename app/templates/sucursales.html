@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Sucursales y umbrales{% endblock %}
 {% block contenido %}
-<h1>Sucursales y umbrales (RF-018)</h1>
+<h1>Sucursales y umbrales <span class="codigo-rf">RF-018</span></h1>
 <div class="rejilla ancha-der">
 <section class="tarjeta">
   <h2>Sucursales</h2>
@@ -51,11 +51,11 @@
     {% if editar_equipo == e.id_equipo %}
     <tr><td colspan="5"><form method="post" class="formulario en-fila"><input type="hidden" name="tipo" value="equipo">
       <input type="hidden" name="id_sucursal" value="{{ actual.id_sucursal }}"><input type="hidden" name="id_equipo" value="{{ e.id_equipo }}">
-      <input name="nombre_equipo" value="{{ e.nombre_equipo }}" required>
-      <select name="tipo_equipo"><option value="refrigeracion" {% if e.tipo_equipo == 'refrigeracion' %}selected{% endif %}>Refrigeración</option><option value="congelacion" {% if e.tipo_equipo == 'congelacion' %}selected{% endif %}>Congelación</option></select>
-      <input name="temp_min" type="number" step="0.1" value="{{ e.temp_min_permitida }}" title="Mínima °C">
-      <input name="temp_max" type="number" step="0.1" value="{{ e.temp_max_permitida }}" title="Máxima °C">
-      <select name="estado_operativo">{% for s in ('normal', 'alerta_temperatura', 'fuera_de_servicio') %}<option value="{{ s }}" {% if e.estado_operativo == s %}selected{% endif %}>{{ s|nombre }}</option>{% endfor %}</select>
+      <input name="nombre_equipo" value="{{ e.nombre_equipo }}" aria-label="Nombre del equipo" required>
+      <select name="tipo_equipo" aria-label="Tipo de equipo"><option value="refrigeracion" {% if e.tipo_equipo == 'refrigeracion' %}selected{% endif %}>Refrigeración</option><option value="congelacion" {% if e.tipo_equipo == 'congelacion' %}selected{% endif %}>Congelación</option></select>
+      <input name="temp_min" type="number" step="0.1" value="{{ e.temp_min_permitida }}" title="Mínima °C" aria-label="Temperatura mínima (°C)">
+      <input name="temp_max" type="number" step="0.1" value="{{ e.temp_max_permitida }}" title="Máxima °C" aria-label="Temperatura máxima (°C)">
+      <select name="estado_operativo" aria-label="Estado operativo">{% for s in ('normal', 'alerta_temperatura', 'fuera_de_servicio') %}<option value="{{ s }}" {% if e.estado_operativo == s %}selected{% endif %}>{{ s|nombre }}</option>{% endfor %}</select>
       <button class="btn chico">Guardar</button></form></td></tr>
     {% else %}
     <tr><td>{{ e.nombre_equipo }}</td><td>{{ e.tipo_equipo|nombre }}</td><td>{{ e.temp_min_permitida|num(1) }} a {{ e.temp_max_permitida|num(1) }} °C</td>
@@ -64,10 +64,10 @@
     {% endfor %}
   </table>
   <form method="post" class="formulario en-fila"><input type="hidden" name="tipo" value="equipo"><input type="hidden" name="id_sucursal" value="{{ actual.id_sucursal }}">
-    <input name="nombre_equipo" placeholder="Nombre del equipo" required>
-    <select name="tipo_equipo" onchange="const r = this.value === 'congelacion' ? [-25, -18] : [0, 4]; this.form.temp_min.value = r[0]; this.form.temp_max.value = r[1];">
+    <input name="nombre_equipo" placeholder="Nombre del equipo" aria-label="Nombre del equipo" required>
+    <select name="tipo_equipo" aria-label="Tipo de equipo" onchange="const r = this.value === 'congelacion' ? [-25, -18] : [0, 4]; this.form.temp_min.value = r[0]; this.form.temp_max.value = r[1];">
       <option value="refrigeracion">Refrigeración</option><option value="congelacion">Congelación</option></select>
-    <input name="temp_min" type="number" step="0.1" value="0" title="Mínima °C"><input name="temp_max" type="number" step="0.1" value="4" title="Máxima °C">
+    <input name="temp_min" type="number" step="0.1" value="0" title="Mínima °C" aria-label="Temperatura mínima (°C)"><input name="temp_max" type="number" step="0.1" value="4" title="Máxima °C" aria-label="Temperatura máxima (°C)">
     <button class="btn chico">Agregar equipo</button></form>
 </section>
 {% endif %}

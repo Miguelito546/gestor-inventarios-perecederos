@@ -1,9 +1,12 @@
 """Gestor Inteligente de Inventarios y Trazabilidad de Productos Perecederos — prototipo v1."""
+import hashlib
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
-from flask import Flask, flash, g, redirect, request, session, url_for
+from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from markupsafe import Markup, escape
 
 import configuracion as cfg
 from .bd import bd, cerrar_bd
@@ -30,6 +33,29 @@ def crear_app():
         JSON_AS_ASCII=False,
     )
     app.teardown_appcontext(cerrar_bd)
+
+    # --- Archivos estáticos: cada versión de un .css o .js lleva su propia huella (?v=...) ---
+    # Así el navegador o la ventana del .exe nunca usan una copia vieja guardada en caché.
+    huellas = {}
+
+    @app.url_defaults
+    def huella_estatica(endpoint, valores):
+        if endpoint == "static" and "filename" in valores:
+            nombre = valores["filename"]
+            if nombre not in huellas:
+                ruta = Path(app.static_folder) / nombre
+                try:
+                    huellas[nombre] = hashlib.md5(ruta.read_bytes(), usedforsecurity=False).hexdigest()[:10]
+                except OSError:
+                    huellas[nombre] = None
+            if huellas[nombre]:
+                valores["v"] = huellas[nombre]
+
+    @app.after_request
+    def sin_copias_viejas(respuesta):
+        if request.endpoint == "static":
+            respuesta.headers["Cache-Control"] = "no-cache"  # siempre pregunta si cambió (responde 304 si no)
+        return respuesta
 
     # --- Formatos RNF-012: DD/MM/AAAA ---
     @app.template_filter("fecha")
@@ -100,6 +126,35 @@ def crear_app():
             if u["rol"] == "Administrador":
                 datos["sucursales_menu"] = bd().q("SELECT id_sucursal, nombre FROM sucursales ORDER BY id_sucursal")
         return datos
+
+    # --- Estado vacío reutilizable (RF de consulta sin resultados) ---
+    @app.template_global()
+    def huella_actual():
+        """Huella de los datos al dibujar la pantalla (punto de partida para detectar cambios)."""
+        from .modulos.panel import huella_datos
+        try:
+            return huella_datos(bd(), sucursal_actual())
+        except Exception:  # noqa: BLE001  sin huella, la primera consulta la toma como punto de partida
+            return ""
+
+    @app.template_global()
+    def vacio(texto, url=None, accion=None, icono="∅", tipo=""):
+        boton = f'<a class="btn chico claro" href="{escape(url)}">{escape(accion)}</a>' if url and accion else ""
+        return Markup(f'<div class="vacio {escape(tipo)}"><span class="vacio-icono" aria-hidden="true">{escape(icono)}</span>'
+                      f'<p>{escape(texto)}</p>{boton}</div>')
+
+    # --- Pantallas de error con opción de reintentar ---
+    @app.errorhandler(404)
+    def no_encontrado(_e):
+        return render_template("error.html", titulo="No encontramos esta página",
+                               mensaje="Puede que el enlace sea incorrecto o que el registro ya no exista."), 404
+
+    @app.errorhandler(500)
+    def error_interno(_e):
+        g.usuario = None  # no vuelve a consultar la base, que pudo ser la causa del error
+        return render_template("error.html", titulo="Algo salió mal",
+                               mensaje="No se pudo completar la operación. Revisa la conexión con la base de datos "
+                                       "y vuelve a intentarlo."), 500
 
     @app.errorhandler(403)
     def prohibido(_e):

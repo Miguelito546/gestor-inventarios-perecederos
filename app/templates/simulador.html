@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Simulador IoT{% endblock %}
 {% block contenido %}
-<h1>Simulador IoT (RI-004)</h1>
+<h1>Simulador IoT <span class="codigo-rf">RI-004</span></h1>
 <p>El simulador {% if activo %}<span class="etiqueta verde">está activo</span>{% else %}<span class="etiqueta gris">está apagado</span>{% endif %}
   y envía una lectura por equipo cada {{ intervalo }} segundos. Úsalo para demostrar las alertas en vivo.</p>
 <div class="aviso info">Para que la alerta de cadena de frío aparezca rápido en la presentación, el administrador puede bajar el

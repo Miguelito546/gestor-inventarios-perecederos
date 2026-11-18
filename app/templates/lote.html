@@ -22,7 +22,7 @@
   {% for h in estados %}
   <div class="evento">{{ h.fecha_cambio|fecha }} · {{ h.estado_anterior or 'Alta' }} → <b>{{ h.estado_nuevo }}</b><br>
     <small>{{ h.motivo_cambio }} · {{ h.nombre_completo or 'Sistema' }}</small></div>
-  {% else %}<p class="tenue">Sin cambios registrados.</p>{% endfor %}
+  {% else %}{{ vacio("Sin cambios registrados.") }}{% endfor %}
 </section>
 </div>
 <section class="tarjeta">
@@ -32,7 +32,7 @@
     {% for m in movimientos %}
     <tr><td>{{ m.fecha_movimiento|fecha }}</td><td>{{ m.tipo_movimiento|nombre }}</td><td>{{ m.cantidad|num }} {{ l.unidad_medida }}</td>
       <td>{{ m.motivo_merma or '—' }}</td><td>{{ m.nombre_completo }}</td><td>{{ 'Sí' if m.sugerido_por_fefo else 'No' }}</td></tr>
-    {% else %}<tr><td colspan="6" class="tenue">Sin movimientos.</td></tr>{% endfor %}
+    {% else %}<tr class="fila-vacia"><td colspan="6">{{ vacio("Sin movimientos.") }}</td></tr>{% endfor %}
   </table>
 </section>
 <div class="rejilla">
@@ -41,13 +41,13 @@
   {% for a in alertas %}
   <a class="fila-alerta" href="{{ url_for('alertas.detalle', id_alerta=a.id_alerta) }}"><span class="etiqueta {{ a.severidad|clase_sev }}">{{ a.severidad|nombre }}</span>
     <span>{{ a.tipo_alerta|nombre }} · {{ a.estado_alerta|nombre }} · {{ a.fecha_creacion|fecha }}<br><small class="tenue">{{ a.descripcion }}</small></span></a>
-  {% else %}<p class="tenue">Sin alertas.</p>{% endfor %}
+  {% else %}{{ vacio("Sin alertas.") }}{% endfor %}
 </section>
 <section class="tarjeta">
   <h2>Descuentos y donaciones</h2>
   {% for d in descuentos %}<div class="evento">Descuento {{ d.porcentaje_sugerido|num(0) }} % · <b>{{ d.estado_autorizacion }}</b> · {{ d.fecha_sugerencia|fecha }}{% if d.nombre_completo %} · {{ d.nombre_completo }}{% endif %}{% if d.motivo_rechazo %}<br><small>{{ d.motivo_rechazo }}</small>{% endif %}</div>{% endfor %}
   {% for d in donaciones %}<div class="evento">Donación {{ d.folio_donacion }} · {{ d.cantidad_donada|num }} {{ l.unidad_medida }} a {{ d.nombre_institucion }} · <b>{{ d.estado_propuesta }}</b></div>{% endfor %}
-  {% if not descuentos and not donaciones %}<p class="tenue">Ninguno.</p>{% endif %}
+  {% if not descuentos and not donaciones %}{{ vacio("Sin descuentos ni donaciones.") }}{% endif %}
 </section>
 </div>
 {% endblock %}

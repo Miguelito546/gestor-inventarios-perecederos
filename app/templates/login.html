@@ -2,11 +2,17 @@
 {% block titulo %}Iniciar sesión{% endblock %}
 {% block contenido %}
 <div class="login">
-  <h1>❄ Gestor de Inventarios Perecederos</h1>
-  <p class="tenue">Sucursales KFC Villahermosa · caso de estudio simulado</p>
+  <div class="logo" aria-hidden="true">❄</div>
+  <h1>Gestor de Inventarios Perecederos</h1>
+  <p>Sucursales KFC Villahermosa · caso de estudio simulado</p>
   <form method="post" class="tarjeta">
     <label>Usuario <input name="usuario" value="{{ usuario or '' }}" autofocus required autocomplete="username"></label>
-    <label>Contraseña <input name="contrasena" type="password" required autocomplete="current-password"></label>
+    <div class="campo"><label for="contrasena">Contraseña</label>
+    <div class="campo-clave">
+      <input id="contrasena" name="contrasena" type="password" required autocomplete="current-password">
+      <button type="button" class="btn chico fantasma ver-clave" aria-pressed="false" aria-controls="contrasena"
+        onclick="const c = document.getElementById('contrasena'), v = c.type === 'password'; c.type = v ? 'text' : 'password'; this.textContent = v ? 'Ocultar' : 'Mostrar'; this.setAttribute('aria-pressed', v);">Mostrar</button>
+    </div></div>
     <button class="btn">Iniciar sesión</button>
   </form>
   <details class="tarjeta tenue">

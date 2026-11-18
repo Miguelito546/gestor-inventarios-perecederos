@@ -7,7 +7,6 @@ RNF-011 Consulta de la bitácora
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import generate_password_hash
 
-from .. import simulador
 from ..bd import auditar, bd, reiniciar_base
 from ..motor import candado
 from ..seguridad import ROLES, requiere_rol, usuario
@@ -188,8 +187,7 @@ def reiniciar_demo():
         flash("Escribe REINICIAR para confirmar.", "error")
         return redirect(url_for("admin.bitacora"))
     with candado:
-        reiniciar_base()
-        simulador.modos.clear()
+        reiniciar_base()  # también limpia los modos del simulador (tabla simulador_modos)
     session.clear()
     flash("Datos de demostración recargados. Inicia sesión de nuevo.", "ok")
     return redirect(url_for("auth.login"))

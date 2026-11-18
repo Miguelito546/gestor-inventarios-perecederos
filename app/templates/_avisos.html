@@ -1,0 +1,8 @@
+{% with mensajes = get_flashed_messages(with_categories=true) %}
+  {% for tipo, m in mensajes %}
+  <div class="aviso {{ tipo }}" role="{{ 'alert' if tipo == 'error' else 'status' }}">
+    <div>{{ m }}</div>
+    <button type="button" class="cerrar-aviso" aria-label="Cerrar aviso" data-cerrar-aviso>×</button>
+  </div>
+  {% endfor %}
+{% endwith %}

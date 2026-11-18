@@ -3,56 +3,88 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{% block titulo %}Inicio{% endblock %} · Gestor de Inventarios Perecederos</title>
+  <script>
+    // Aplica el tema guardado antes de pintar la página (evita un destello de color)
+    try { const t = localStorage.getItem('tema'); if (t) document.documentElement.dataset.tema = t; } catch (e) {}
+  </script>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icono-180.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
 </head>
-<body>
+<body{% if u %} data-cambios="{{ url_for('panel.cambios') }}" data-huella="{{ huella_actual() }}"{% if request.method == 'GET' %} data-recargable{% endif %}{% endif %}>
+<a class="saltar" href="#principal">Saltar al contenido</a>
+<div class="progreso" aria-hidden="true"></div>
 {% if u %}
-<header class="barra">
-  <a class="marca" href="{{ url_for('panel.inicio') }}">❄ Gestor de Inventarios Perecederos</a>
-  <button class="menu-btn" onclick="document.body.classList.toggle('menu-abierto')" aria-label="Menú">☰</button>
-  <div class="usuario">
-    {% if u.rol == 'Administrador' %}
-    <form method="post" action="{{ url_for('panel.elegir_sucursal') }}" class="selector">
-      <select name="id_sucursal" onchange="this.form.submit()" title="Sucursal que estás consultando">
-        {% for s in sucursales_menu %}<option value="{{ s.id_sucursal }}" {% if s.id_sucursal == id_sucursal_actual %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
-      </select>
-    </form>
-    {% else %}<span class="suc">{{ u.sucursal }}</span>{% endif %}
-    <span>{{ u.nombre_completo }} · <b>{{ u.rol }}</b></span>
-    <a class="btn chico claro" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+<div class="marco">
+  <aside class="lateral" id="menu-lateral" aria-label="Menú principal">
+    <a class="marca" href="{{ url_for('panel.inicio') }}"><span class="marca-icono" aria-hidden="true">❄</span><span>Gestor de Inventarios Perecederos</span></a>
+    {% set ep = request.endpoint or '' %}
+    {% macro enlace(endpoint, texto, activo) -%}
+      <a href="{{ url_for(endpoint) }}" class="{{ 'activo' if activo }}" {% if activo %}aria-current="page"{% endif %}>{{ texto }}{{ caller() if caller }}</a>
+    {%- endmacro %}
+    <nav class="menu">
+      <span class="menu-grupo">Operación</span>
+      {{ enlace('panel.inicio', 'Inicio', ep == 'panel.inicio') }}
+      {{ enlace('inventario.consultar', 'Inventario', ep == 'inventario.consultar') }}
+      {{ enlace('inventario.registrar_lote', 'Registrar lote', ep == 'inventario.registrar_lote') }}
+      {{ enlace('inventario.registrar_movimiento', 'Consumo / merma', ep == 'inventario.registrar_movimiento') }}
+      {{ enlace('monitoreo.ver', 'Monitoreo', ep == 'monitoreo.ver') }}
+      {% call enlace('alertas.lista', 'Alertas', ep.startswith('alertas')) %}{% if alertas_pendientes %}<span class="globo" aria-label="{{ alertas_pendientes }} activas">{{ alertas_pendientes }}</span>{% endif %}{% endcall %}
+      {% if u.rol in ('Supervisor', 'Administrador') %}
+      <span class="menu-grupo">Supervisión</span>
+      {{ enlace('trazabilidad.buscar', 'Trazabilidad', ep.startswith('trazabilidad')) }}
+      {{ enlace('aprovechamiento.descuentos', 'Descuentos', ep == 'aprovechamiento.descuentos') }}
+      {{ enlace('aprovechamiento.donaciones', 'Donaciones', ep == 'aprovechamiento.donaciones') }}
+      {{ enlace('reportes.generar_reporte', 'Reportes', ep.startswith('reportes')) }}
+      {{ enlace('inventario.catalogos', 'Catálogos', ep == 'inventario.catalogos') }}
+      {{ enlace('monitoreo.control_simulador', 'Simulador IoT', ep == 'monitoreo.control_simulador') }}
+      {% endif %}
+      {% if u.rol == 'Administrador' %}
+      <span class="menu-grupo">Administración</span>
+      {{ enlace('admin.usuarios', 'Usuarios', ep == 'admin.usuarios') }}
+      {{ enlace('admin.sucursales', 'Sucursales y umbrales', ep == 'admin.sucursales') }}
+      {{ enlace('admin.bitacora', 'Bitácora', ep == 'admin.bitacora') }}
+      {% endif %}
+    </nav>
+  </aside>
+  <div class="fondo-menu" data-cerrar-menu></div>
+  <div class="area">
+    <header class="barra">
+      <button class="btn fantasma icono menu-btn" type="button" aria-label="Abrir menú" aria-controls="menu-lateral" aria-expanded="false" data-menu><svg class="icono-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      {% if u.rol != 'Administrador' %}<span class="barra-titulo">{{ u.sucursal }}</span>{% endif %}
+      <div class="usuario">
+        {% if u.rol == 'Administrador' %}
+        <form method="post" action="{{ url_for('panel.elegir_sucursal') }}" class="selector">
+          <label class="solo-lector" for="sel-sucursal">Sucursal que estás consultando</label>
+          <select id="sel-sucursal" name="id_sucursal" onchange="this.form.submit()">
+            {% for s in sucursales_menu %}<option value="{{ s.id_sucursal }}" {% if s.id_sucursal == id_sucursal_actual %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+          </select>
+        </form>
+        {% endif %}
+        <span class="quien">{{ u.nombre_completo }}<small>{{ u.rol }}</small></span>
+        <button class="btn fantasma icono" type="button" data-cambiar-tema aria-label="Cambiar a modo oscuro" title="Modo claro / oscuro"><svg class="icono-svg luna" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="icono-svg sol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+        <a class="btn chico claro" href="{{ url_for('auth.logout') }}"><span class="texto-largo">Cerrar sesión</span><span class="texto-corto">Salir</span></a>
+      </div>
+    </header>
+    <main id="principal" class="contenido" tabindex="-1">
+      {% include "_avisos.html" %}
+      {% block contenido %}{% endblock %}
+      {% include "_esqueleto.html" %}
+    </main>
+    <footer class="pie">Prototipo v1 · Equipo 1 · Fundamentos de Ingeniería de Software · ITVH · Datos ficticios (RNF-013)</footer>
   </div>
-</header>
-<nav class="menu">
-  {% set ep = request.endpoint or '' %}
-  <a href="{{ url_for('panel.inicio') }}" class="{{ 'activo' if ep == 'panel.inicio' }}">Inicio</a>
-  <a href="{{ url_for('inventario.consultar') }}" class="{{ 'activo' if ep == 'inventario.consultar' }}">Inventario</a>
-  <a href="{{ url_for('inventario.registrar_lote') }}" class="{{ 'activo' if ep == 'inventario.registrar_lote' }}">Registrar lote</a>
-  <a href="{{ url_for('inventario.registrar_movimiento') }}" class="{{ 'activo' if ep == 'inventario.registrar_movimiento' }}">Consumo / merma</a>
-  <a href="{{ url_for('monitoreo.ver') }}" class="{{ 'activo' if ep == 'monitoreo.ver' }}">Monitoreo</a>
-  <a href="{{ url_for('alertas.lista') }}" class="{{ 'activo' if ep.startswith('alertas') }}">Alertas{% if alertas_pendientes %} <span class="globo">{{ alertas_pendientes }}</span>{% endif %}</a>
-  {% if u.rol in ('Supervisor', 'Administrador') %}
-  <a href="{{ url_for('trazabilidad.buscar') }}" class="{{ 'activo' if ep.startswith('trazabilidad') }}">Trazabilidad</a>
-  <a href="{{ url_for('aprovechamiento.descuentos') }}" class="{{ 'activo' if ep == 'aprovechamiento.descuentos' }}">Descuentos</a>
-  <a href="{{ url_for('aprovechamiento.donaciones') }}" class="{{ 'activo' if ep == 'aprovechamiento.donaciones' }}">Donaciones</a>
-  <a href="{{ url_for('reportes.generar_reporte') }}" class="{{ 'activo' if ep.startswith('reportes') }}">Reportes</a>
-  <a href="{{ url_for('inventario.catalogos') }}" class="{{ 'activo' if ep == 'inventario.catalogos' }}">Catálogos</a>
-  <a href="{{ url_for('monitoreo.control_simulador') }}" class="{{ 'activo' if ep == 'monitoreo.control_simulador' }}">Simulador IoT</a>
-  {% endif %}
-  {% if u.rol == 'Administrador' %}
-  <a href="{{ url_for('admin.usuarios') }}" class="{{ 'activo' if ep == 'admin.usuarios' }}">Usuarios</a>
-  <a href="{{ url_for('admin.sucursales') }}" class="{{ 'activo' if ep == 'admin.sucursales' }}">Sucursales y umbrales</a>
-  <a href="{{ url_for('admin.bitacora') }}" class="{{ 'activo' if ep == 'admin.bitacora' }}">Bitácora</a>
-  {% endif %}
-</nav>
-{% endif %}
-<main class="{{ 'contenido' if u else 'contenido solo' }}">
-  {% with mensajes = get_flashed_messages(with_categories=true) %}
-    {% for tipo, m in mensajes %}<div class="aviso {{ tipo }}">{{ m }}</div>{% endfor %}
-  {% endwith %}
-  {% block contenido %}{% endblock %}
+</div>
+{% else %}
+<main id="principal" class="contenido solo" tabindex="-1">
+  {% include "_avisos.html" %}
+  {% block contenido_publico %}{{ self.contenido() }}{% endblock %}
 </main>
-<footer class="pie">Prototipo v1 · Equipo 1 · Fundamentos de Ingeniería de Software · ITVH · Datos ficticios (RNF-013)</footer>
+<footer class="pie">Prototipo v1 · Equipo 1 · ITVH · Datos ficticios (RNF-013)</footer>
+{% endif %}
+<script src="{{ url_for('static', filename='js/interfaz.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

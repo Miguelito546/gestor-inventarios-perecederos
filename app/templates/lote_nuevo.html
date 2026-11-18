@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Registrar lote{% endblock %}
 {% block contenido %}
-<h1>Registrar lote (RF-006)</h1>
+<h1>Registrar lote <span class="codigo-rf">RF-006</span></h1>
 <form method="post" class="tarjeta formulario angosto">
   <label>Insumo <select name="id_insumo" required><option value="">Selecciona…</option>
     {% for i in insumos %}<option value="{{ i.id_insumo }}" {% if d.id_insumo == i.id_insumo|string %}selected{% endif %}>{{ i.nombre }} ({{ i.unidad_medida }})</option>{% endfor %}</select></label>

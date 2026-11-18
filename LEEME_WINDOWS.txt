@@ -1,0 +1,25 @@
+GESTOR DE INVENTARIOS PERECEDEROS - Versión para Windows
+=========================================================
+
+1. Descomprime esta carpeta donde quieras (por ejemplo, en Documentos).
+   No hace falta instalar Python ni MariaDB.
+
+2. Abre conexion.ini con el Bloc de notas y escribe los datos de la base
+   de datos compartida (los mismos en TODAS las computadoras).
+   Si usas la base en la nube (Aiven), pon también "ssl = si".
+
+3. Da doble clic en GestorInventarios.exe.
+   - La primera vez, Windows puede mostrar "Windows protegió tu PC":
+     da clic en "Más información" y luego en "Ejecutar de todas formas".
+   - Si Windows pregunta por el firewall, permite el acceso (sirve para
+     abrir la aplicación desde el celular en la misma red Wi-Fi).
+
+4. Usuarios de prueba (contraseña de todos: Demo2026):
+   admin, supervisor, empleado, supervisor2, empleado2
+
+Menú "Opciones" de la ventana:
+   - Abrir también en el navegador
+   - Editar conexion.ini
+   - Abrir la carpeta del programa
+
+Si algo falla, revisa el archivo gestor.log que aparece en esta carpeta.

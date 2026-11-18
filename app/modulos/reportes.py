@@ -25,7 +25,7 @@ def respuesta_csv(nombre, encabezados, filas):
     escritor.writerow(encabezados)
     escritor.writerows(filas)
     return Response(salida.getvalue(), mimetype="text/csv; charset=utf-8",
-                    headers={"Content-Disposition": f"attachment; filename={nombre}"})
+                    headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
 
 
 def f_(v):
@@ -96,7 +96,7 @@ def generar(tipo, id_sucursal, desde, hasta):
             [f"{k}: {v} lotes" for k, v in estados.items()] + [f"Total de lotes con existencia: {len(filas)}"])
 
 
-def respuesta_pdf(titulo, subtitulo, encabezados, filas, totales):
+def respuesta_pdf(titulo, subtitulo, encabezados, filas, totales, nombre="reporte.pdf"):
     from fpdf import FPDF
 
     def t(v):  # las fuentes básicas de PDF usan Latin-1
@@ -127,7 +127,7 @@ def respuesta_pdf(titulo, subtitulo, encabezados, filas, totales):
     if not filas:
         pdf.cell(0, 6, t("No hay datos en el periodo seleccionado."), new_x="LMARGIN", new_y="NEXT")
     return Response(bytes(pdf.output()), mimetype="application/pdf",
-                    headers={"Content-Disposition": "attachment; filename=reporte.pdf"})
+                    headers={"Content-Disposition": f'attachment; filename="{nombre}"'})
 
 
 @bp.route("/reportes")
@@ -157,10 +157,11 @@ def generar_reporte():
             subtitulo = (f"{nombre_suc} · Periodo {date.fromisoformat(p['desde']):%d/%m/%Y} a "
                          f"{date.fromisoformat(p['hasta']):%d/%m/%Y} · Generado por {usuario()['nombre_completo']}")
             formato = request.args.get("formato", "pantalla")
+            nombre_archivo = f"reporte_{p['tipo']}_{p['desde']}_a_{p['hasta']}"
             if formato == "csv":
-                return respuesta_csv(f"reporte_{p['tipo']}.csv", encabezados, filas)
+                return respuesta_csv(f"{nombre_archivo}.csv", encabezados, filas)
             if formato == "pdf":
-                return respuesta_pdf(TIPOS[p["tipo"]], subtitulo, encabezados, filas, totales)
+                return respuesta_pdf(TIPOS[p["tipo"]], subtitulo, encabezados, filas, totales, f"{nombre_archivo}.pdf")
             resultado = {"titulo": TIPOS[p["tipo"]], "subtitulo": subtitulo, "encabezados": encabezados,
                          "filas": filas, "totales": totales}
     return render_template("reportes.html", p=p, tipos=TIPOS, sucursales=sucursales, r=resultado)

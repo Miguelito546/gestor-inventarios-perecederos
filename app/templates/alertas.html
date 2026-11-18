@@ -2,9 +2,11 @@
 {% block titulo %}Alertas{% endblock %}
 {% block contenido %}
 <h1>Alertas</h1>
-<p><a class="btn {{ '' if ver == 'activas' else 'claro' }}" href="?ver=activas">Activas</a>
-   <a class="btn {{ '' if ver == 'todas' else 'claro' }}" href="?ver=todas">Todas</a>
-   {% if u.rol == 'Empleado' %}<span class="tenue"> · Solo el supervisor puede atender alertas.</span>{% endif %}</p>
+<div class="grupo-botones" role="group" aria-label="Filtrar alertas">
+  <a class="btn {{ '' if ver == 'activas' else 'claro' }}" href="?ver=activas" {% if ver == 'activas' %}aria-current="true"{% endif %}>Activas</a>
+  <a class="btn {{ '' if ver == 'todas' else 'claro' }}" href="?ver=todas" {% if ver == 'todas' %}aria-current="true"{% endif %}>Todas</a>
+</div>
+{% if u.rol == 'Empleado' %}<p class="tenue">Solo el supervisor puede atender alertas.</p>{% endif %}
 <div class="tabla-scroll">
 <table class="tabla">
   <tr><th>Severidad</th><th>Tipo</th><th>Lote / equipo</th><th>Descripción</th><th>Estado</th><th>Fecha</th></tr>
@@ -17,7 +19,7 @@
     <td><span class="estado-alerta e-{{ a.estado_alerta|lower }}">{{ a.estado_alerta|nombre }}</span></td>
     <td>{{ a.fecha_creacion|fecha }}</td>
   </tr>
-  {% else %}<tr><td colspan="6" class="tenue">No hay alertas.</td></tr>{% endfor %}
+  {% else %}<tr class="fila-vacia"><td colspan="6">{{ vacio("No hay alertas activas. Todo en orden.", icono="✓", tipo="ok") if ver == 'activas' else vacio("No hay alertas registradas.") }}</td></tr>{% endfor %}
 </table>
 </div>
 {% endblock %}

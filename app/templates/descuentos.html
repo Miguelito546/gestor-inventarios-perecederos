@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Descuentos{% endblock %}
 {% block contenido %}
-<h1>Descuentos dinámicos (RF-014)</h1>
+<h1>Descuentos dinámicos <span class="codigo-rf">RF-014</span></h1>
 <p class="tenue">El sistema sugiere 10 % cuando faltan 2 días o menos y 25 % cuando falta 1 día o menos (RN-003). Requiere tu autorización.</p>
 <section class="tarjeta">
   <h2>Por autorizar ({{ pendientes|length }})</h2>
@@ -16,7 +16,7 @@
         <form method="post" class="en-linea"><input type="hidden" name="id_descuento" value="{{ s.id_descuento }}">
           <input name="motivo" placeholder="Motivo del rechazo" required><button class="btn claro" name="accion" value="rechazar">Rechazar</button></form>
       </td></tr>
-    {% else %}<tr><td colspan="5" class="tenue">No hay sugerencias pendientes.</td></tr>{% endfor %}
+    {% else %}<tr class="fila-vacia"><td colspan="5">{{ vacio("No hay sugerencias pendientes.") }}</td></tr>{% endfor %}
   </table>
 </section>
 <section class="tarjeta">
@@ -26,7 +26,7 @@
     {% for s in historial %}
     <tr><td>{{ s.codigo_lote }}</td><td>{{ s.porcentaje_sugerido|num(0) }} %</td><td>{{ s.estado_autorizacion }}</td><td>{{ s.nombre_completo or 'Sistema' }}</td>
       <td>{{ s.fecha_respuesta|fecha }}</td><td>{{ s.motivo_rechazo or '—' }}</td></tr>
-    {% else %}<tr><td colspan="6" class="tenue">Sin historial.</td></tr>{% endfor %}
+    {% else %}<tr class="fila-vacia"><td colspan="6">{{ vacio("Sin historial.") }}</td></tr>{% endfor %}
   </table>
 </section>
 {% endblock %}

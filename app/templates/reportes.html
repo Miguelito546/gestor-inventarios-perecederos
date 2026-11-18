@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Reportes{% endblock %}
 {% block contenido %}
-<h1>Reportes (RF-016)</h1>
+<h1>Reportes <span class="codigo-rf">RF-016</span></h1>
 <form method="get" class="tarjeta filtros">
   <input type="hidden" name="generar" value="1">
   <label>Tipo <select name="tipo">{% for k, v in tipos.items() %}<option value="{{ k }}" {% if p.tipo == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
@@ -10,20 +10,22 @@
     {% for s in sucursales %}<option value="{{ s.id_sucursal }}" {% if p.sucursal == s.id_sucursal|string %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}</select></label>
   <label>Desde <input type="date" name="desde" value="{{ p.desde }}" required></label>
   <label>Hasta <input type="date" name="hasta" value="{{ p.hasta }}" required></label>
-  <button class="btn" name="formato" value="pantalla">Ver en pantalla</button>
-  <button class="btn claro" name="formato" value="pdf">Exportar PDF</button>
-  <button class="btn claro" name="formato" value="csv">Exportar CSV</button>
+  <div class="acciones">
+    <button class="btn" name="formato" value="pantalla">Ver en pantalla</button>
+    <button class="btn claro" name="formato" value="pdf">Exportar PDF</button>
+    <button class="btn claro" name="formato" value="csv">Exportar CSV</button>
+  </div>
 </form>
 {% if r %}
 <section class="tarjeta">
   <h2>{{ r.titulo }}</h2>
   <p class="tenue">{{ r.subtitulo }}</p>
-  {% if not r.filas %}<div class="aviso info">No hay datos en el periodo seleccionado.</div>{% endif %}
+  {% if not r.filas %}{{ vacio("No hay datos en el periodo seleccionado. Prueba con otras fechas o con otra sucursal.") }}{% endif %}
   <ul class="totales">{% for t in r.totales %}<li>{{ t }}</li>{% endfor %}</ul>
-  <div class="tabla-scroll"><table class="tabla">
+  {% if r.filas %}<div class="tabla-scroll"><table class="tabla">
     <tr>{% for e in r.encabezados %}<th>{{ e }}</th>{% endfor %}</tr>
     {% for fila in r.filas %}<tr>{% for v in fila %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}
-  </table></div>
+  </table></div>{% endif %}
 </section>
 {% endif %}
 {% endblock %}

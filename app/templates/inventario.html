@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block titulo %}Inventario{% endblock %}
 {% block contenido %}
-<h1>Inventario de la sucursal</h1>
+<div class="encabezado">
+  <div><h1>Inventario <span class="codigo-rf">RF-002</span></h1><p>Lotes de la sucursal ordenados por caducidad.</p></div>
+  <div class="acciones"><a class="btn" href="{{ url_for('inventario.registrar_lote') }}">+ Registrar lote</a></div>
+</div>
 <form class="filtros tarjeta" method="get">
   <label>Insumo <select name="insumo"><option value="">Todos</option>
     {% for i in insumos %}<option value="{{ i.id_insumo }}" {% if f.insumo == i.id_insumo|string %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select></label>
@@ -10,7 +13,7 @@
   <label>Caduca desde <input type="date" name="desde" value="{{ f.desde }}"></label>
   <label>hasta <input type="date" name="hasta" value="{{ f.hasta }}"></label>
   <label class="check"><input type="checkbox" name="agotados" value="1" {% if f.agotados %}checked{% endif %}> Incluir agotados</label>
-  <button class="btn">Filtrar</button> <a class="btn claro" href="{{ url_for('inventario.consultar') }}">Limpiar</a>
+  <div class="acciones"><button class="btn">Filtrar</button><a class="btn fantasma" href="{{ url_for('inventario.consultar') }}">Limpiar</a></div>
 </form>
 <div class="leyenda"><span class="etiqueta verde">Fresco</span><span class="etiqueta amarillo">Próximo a vencer</span><span class="etiqueta rojo">Vencido</span><span class="etiqueta morado">Retenido</span></div>
 <div class="tabla-scroll">
@@ -26,7 +29,7 @@
     <td><span class="riesgo r-{{ l.riesgo_merma|lower|replace(' ', '-') }}">{{ l.riesgo_merma }}</span></td>
     <td>{{ l.nombre_equipo }}</td>
   </tr>
-  {% else %}<tr><td colspan="7" class="tenue">No hay lotes que coincidan.</td></tr>{% endfor %}
+  {% else %}<tr class="fila-vacia"><td colspan="7">{{ vacio("No hay lotes que coincidan con los filtros.", url=url_for('inventario.consultar'), accion="Limpiar filtros") }}</td></tr>{% endfor %}
 </table>
 </div>
 {% endblock %}

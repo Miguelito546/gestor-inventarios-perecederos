@@ -15,13 +15,17 @@ bp = Blueprint("monitoreo", __name__)
 
 
 def equipos_con_actual(base, id_sucursal):
+    # Última lectura de cada equipo con ROW_NUMBER() (funciona en MariaDB, MySQL 8 y TiDB)
     return base.q(
         "SELECT e.*, t.temperatura_registrada AS actual, t.fecha_hora_lectura AS hora, t.fuera_de_rango, "
         "(SELECT COUNT(*) FROM alertas a WHERE a.id_equipo = e.id_equipo AND a.estado_alerta <> 'Cerrada') AS alertas "
-        "FROM equipos_almacenamiento e LEFT JOIN lecturas_temperatura t ON t.id_lectura = ("
-        "  SELECT id_lectura FROM lecturas_temperatura x WHERE x.id_equipo = e.id_equipo "
-        "  ORDER BY fecha_hora_lectura DESC LIMIT 1) "
-        "WHERE e.id_sucursal = %s ORDER BY e.id_equipo", (id_sucursal,))
+        "FROM equipos_almacenamiento e LEFT JOIN ("
+        "  SELECT l.id_equipo, l.temperatura_registrada, l.fecha_hora_lectura, l.fuera_de_rango, "
+        "         ROW_NUMBER() OVER (PARTITION BY l.id_equipo ORDER BY l.fecha_hora_lectura DESC, l.id_lectura DESC) AS n "
+        "  FROM lecturas_temperatura l JOIN equipos_almacenamiento q ON q.id_equipo = l.id_equipo "
+        "  WHERE q.id_sucursal = %s"
+        ") t ON t.id_equipo = e.id_equipo AND t.n = 1 "
+        "WHERE e.id_sucursal = %s ORDER BY e.id_equipo", (id_sucursal, id_sucursal))
 
 
 @bp.route("/monitoreo")
@@ -92,15 +96,16 @@ def control_simulador():
             abort(404)
         verificar_sucursal(equipo["id_sucursal"])
         modo = request.form.get("modo", "normal")
-        if modo not in ("normal", "falla", "sin_senal"):
+        if modo not in simulador.MODOS:
             abort(400)
-        simulador.modos[id_equipo] = modo
+        simulador.cambiar_modo(base, id_equipo, modo)
         textos = {"normal": "envía temperaturas normales", "falla": "simula una falla de frío",
                   "sin_senal": "dejó de enviar lecturas"}
         flash(f"{equipo['nombre_equipo']} ahora {textos[modo]}.", "ok")
         return redirect(url_for("monitoreo.control_simulador"))
     equipos = equipos_con_actual(base, sucursal_actual())
+    modos = simulador.leer_modos(base)
     for e in equipos:
-        e["modo"] = simulador.modos.get(e["id_equipo"], "normal")
-    return render_template("simulador.html", equipos=equipos, activo=simulador.activo["valor"],
+        e["modo"] = modos.get(e["id_equipo"], "normal")
+    return render_template("simulador.html", equipos=equipos, activo=simulador.esta_activo(base),
                            intervalo=cfg.SIMULADOR_INTERVALO_SEG)
